@@ -1,0 +1,229 @@
+A program called "SnapDecision"
+
+SnapDecision Program Design Summary:
+
+Purpose:
+  C++ program using Qt for sorting large numbers images from digital cameras into 'keep' and 'delete' categories.
+  When run on an image in a directory, it will index all images in that directory to be included in classification.
+  Also allows launching 3rd party applications for displayed image.
+
+Main Interface:
+  Displays individual images. Keyboard is primary input device for classification.
+  For example, 'x' on keyboard marks image for delete (with automatic advance to next image);
+  arrow keys for navigation and implicit 'keep'.
+  Undo and Redo supported.
+  A color coded bar with overlayed numbers shows number of 'keep' on the left of the bar in green,
+    'unclassified' in the middle in blue and 'delete' in red on the right.
+  More views into the global classification state can be displayed. These would help correlate classifications
+    against one or more elements of image metadata.
+
+Initial State:
+  All images start unclassified unless a DB file is found with persistent data.
+
+Image Metadata:
+  Shutter speed, ISO, exposure compensation, zoom, time, relative position within a burst of multiple images
+
+Program Structure:
+  Model-View-Controller (MVC) architecture.
+  Model manages data, View handles UI, Controller processes user inputs and updates Model/View.
+  Classes are MainModel, MainController, MainWindow
+
+Image Loading:
+  Asynchronous and predictive loading, caching, and management of large images.
+  Free memory for least recently used. Keep memory usage for images under a user tolerance.
+  Images are shared with the rest of the program via weak_ptrs so that memory usage is controlled in a single location.
+
+Database:
+  An SQLite Database is written in the directory where images are classified.
+  The creation of this database may be delayed so that if SnapDecision is run on a single image,
+    we do not pollute the directory with these management files.
+  If it appears the user is classifying images vs simply looking at them, the database is created
+    and all decisions are written to it.
+  A UI element exists showing the state of "not yet writing" and can be explicitly switched into "start writing now"
+    or "never write in this session" by the user.
+
+
+
+
+
+
+
+Design Document for DatabaseManager in SnapDecision
+Overview
+The DatabaseManager class plays a pivotal role in the SnapDecision program, a C++ application using Qt for sorting large numbers of images. This program classifies images into 'keep' or 'delete' categories based on user input. The DatabaseManager is responsible for persisting these decisions, ensuring efficient data handling and state management.
+
+Key Responsibilities
+Data Persistence: Stores and retrieves image classification decisions.
+Database Mode Management: Seamlessly switches between in-memory and on-disk database modes.
+Data Integrity: Ensures data consistency during mode switching by copying data between databases.
+Schema Management: Initializes and maintains the database schema.
+Structure
+The DatabaseManager class encapsulates all database-related operations, providing a clean interface for database interactions and abstracting the underlying database details from the rest of the application.
+
+Database Initialization: Initializes either an in-memory or file-based SQLite database upon creation.
+Mode Switching: Allows switching between in-memory and file-based databases, handling data transfer during these switches.
+Data Handling: Implements methods to save and retrieve image decisions (saveDecision and getDecision).
+Database Creation and Copying: Manages database schema creation (initializeDb) and implements a method for copying data between databases (copyDatabaseContents).
+Integration with SnapDecision
+Image Classification: As images are classified, DatabaseManager saves these decisions to the current database.
+State Persistence: When the program is closed and later reopened, DatabaseManager loads previous decisions, allowing for seamless continuation of work.
+Performance Optimization: Starts with an in-memory database for fast operations. If the user's session indicates a long-term engagement (e.g., classifying many images), it switches to a file-based database.
+Data Integrity: On switching database modes, DatabaseManager ensures no data is lost and the state is consistently maintained.
+Technical Details
+Database Technologies: Uses SQLite for database operations, a lightweight, disk-based database that provides a relational database management system.
+Language and Frameworks: Implemented in C++, utilizing the Qt framework, particularly the QtSql module.
+Error Handling and Logging: Implements robust error handling and logging mechanisms to ensure reliability and ease of debugging.
+Future Enhancements
+
+
+
+Design Document for Image Caching System in SnapDecision
+Overview
+The Image Caching System is a crucial component of SnapDecision, a C++ application designed for sorting images using the Qt framework. This system optimizes the program's performance by managing image loading and caching efficiently.
+
+Purpose
+The purpose of the Image Caching System is to:
+
+Load and cache images asynchronously to enhance UI responsiveness.
+Manage memory usage effectively, preventing excessive consumption.
+
+Integration in SnapDecision
+SnapDecision Interaction: Interacts with the main UI and DatabaseManager, providing quick access to images for classification.
+Metadata Use: Works with image metadata (like shutter speed, ISO) to assist in analysis of decisions.
+
+Components
+ImageCache Class: Central component managing the caching mechanism.
+DataElement Class: Represents individual image data, including metadata and QPixmap representation.
+
+Functionality
+Asynchronous Image Loading: Images are loaded in a separate thread to avoid UI blocking.
+Memory Management: Maintains images in memory up to a user-defined limit, then applies a least-recently-used (LRU) strategy for memory freeing.
+
+Metadata Integration: Extracts and stores image metadata using TinyEXIF.
+
+System Structure
+Model-View-Controller (MVC) Approach:
+ImageCache as part of the Model layer, handling data management.
+UI components in SnapDecision interact with ImageCache for display purposes.
+
+Thread Management:
+Worker thread for handling image loading without UI interference.
+
+Key Methods
+getImage: Retrieves or enqueues loading of an image.
+enqueueImageLoad: Adds an image path to the load queue.
+loadToCache: Loads an image into the cache.
+manageCache: Manages the cache size based on memory usage.
+
+Performance Considerations
+Efficient memory usage with dynamic adjustment based on actual image sizes.
+
+
+
+
+
+Design Document: Qt Model for Image Hierarchy Display
+
+We will create a hierarchy of images based on time. Groups in the leaves of the hierarchy will be images shot in a single high speed burst and can be identified by timestamp. Sequential mages with differences in timestamps less than 250ms (configurable) will be grouped together and the group will be labelled a "Scene". 20 images spanning 2 seconds can be considerd a single "Scene" as long as the time between each pair of sequential images is less than the threshold for a "Scene". 
+
+The next grouping higher in the hierarchy will be labelled a "Location". Images in the same location will be a group of sequential images where the time between sequential pairs of images is less than 5 minutes (configurable).
+
+This means we will have a first grouping of Locations. This will be like the 1st set of folders in a view. The second grouping will be Scenes within a single location. This would be like folders within the 1st set of folders in a view. The final elements will be the image names themselves. They will exist within individual scenes. Each Scene will have at least 1 image.
+
+These groupings are meant to be natural to a bird photographer where they may travel around (triggering the Location boundaries) but when they are photographing, they will be shooting high speed bursts of images. Generally they will want to delete most of a single high speed burst or "Scene" so the program will present in a manner that makes "Scene" pruning easier.
+
+Between Scenes, the photographer is likely taking a picture of a different bird or from a different angle and we will present these as if it were a different directory in a filesystem view. 
+
+Within this file listing view, we will also display the decisions using a color coded icon next to the image name:
+Red icon for 'delete'.
+Blue icon for 'undecided'.
+Green icon for 'keep'.
+
+Furthermore, images that are scheduled to be deleted will have the text in their filename following the disabled palette.
+
+
+Key Components
+ImageDescription Struct
+  Holds metadata for each image, including filename, timestamp, and decision status (Keep, Delete, Unclassified).
+
+
+TreeNode Structure
+  Represents a node in the tree, which can be a Root, Location, Scene, or Image.
+  Includes a parent pointer (as a std::weak_ptr) for easy navigation.
+
+ImageTreeBuilder Class
+  Responsible for building the hierarchical tree from a std::vector of ImageDescription.
+  Groups images into Scenes and Locations based on configurable time thresholds.
+
+ImageTreeModel Class (Subclass of QAbstractItemModel)
+
+Interfaces with QTreeView.
+Implements essential methods like index, parent, rowCount, columnCount, and data.
+Uses ImageTreeBuilder to construct the tree from image data.
+Provides a setter method to update the model with new image data.
+
+Customizations
+Icons for Decisions: Uses Qt::DecorationRole to display icons next to image names indicating their decision status (Keep, Delete, Unclassified).
+Text Coloring: Implements Qt::ForegroundRole to change the text color for images scheduled for deletion.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+| Database Column Name | C++ Data Type         | Database Data Type | Default Value          | Getter Name           | Setter Name           | Conversion Functions           |
+|----------------------|-----------------------|--------------------|------------------------|-----------------------|-----------------------|--------------------------------|
+| AbsolutePath         | std::string           | TEXT               |                        | getAbsolutePath       | setAbsolutePath       |                                |
+| Decision             | DecisionType          | TEXT               | 'Unknown'              | getDecision           | setDecision           | to_string, to_DecisionType     |
+| ImageWidth           | int                   | INTEGER            | 0                      | getImageWidth         | setImageWidth         |                                |
+| ImageHeight          | int                   | INTEGER            | 0                      | getImageHeight        | setImageHeight        |                                |
+| Make                 | std::string           | TEXT               |                        | getMake               | setMake               |                                |
+| Model                | std::string           | TEXT               |                        | getModel              | setModel              |                                |
+| BitsPerSample        | int                   | INTEGER            | 0                      | getBitsPerSample      | setBitsPerSample      |                                |
+| DateTime             | std::string           | TEXT               |                        | getDateTime           | setDateTime           |                                |
+| DateTimeOriginal     | std::string           | TEXT               |                        | getDateTimeOriginal   | setDateTimeOriginal   |                                |
+| SubSecTimeOriginal   | std::string           | TEXT               |                        | getSubSecTimeOriginal | setSubSecTimeOriginal |                                |
+| FNumber              | double                | REAL               | 0.0                    | getFNumber            | setFNumber            |                                |
+| ExposureProgram      | ExposureProgram       | TEXT               | 'NotDefined'           | getExposureProgram    | setExposureProgram    | to_string, to_ExposureProgram  |
+| ISOSpeedRatings      | int                   | INTEGER            | 0                      | getISOSpeedRatings    | setISOSpeedRatings    |                                |
+| ShutterSpeedValue    | double                | REAL               | 0.0                    | getShutterSpeedValue  | setShutterSpeedValue  |                                |
+| ApertureValue        | double                | REAL               | 0.0                    | getApertureValue      | setApertureValue      |                                |
+| BrightnessValue      | double                | REAL               | 0.0                    | getBrightnessValue    | setBrightnessValue    |                                |
+| ExposureBiasValue    | double                | REAL               | 0.0                    | getExposureBiasValue  | setExposureBiasValue  |                                |
+| SubjectDistance      | double                | REAL               | 0.0                    | getSubjectDistance    | setSubjectDistance    |                                |
+| FocalLength          | double                | REAL               | 0.0                    | getFocalLength        | setFocalLength        |                                |
+| MeteringMode         | MeteringMode          | TEXT               | 'Unknown'              | getMeteringMode       | setMeteringMode       | to_string, to_MeteringMode     |
+| CreationMs           | std::size_t           | BIGINT             | 0                      | getCreationMs         | setCreationMs         |                                |
+
+
+
+
+
+std::string absolute_path;          // Full path to image file
+DecisionType decision;              // from enum - User Decision
+uint32_t ImageWidth;                // Image width (0 for unknown)
+uint32_t ImageHeight;               // Image height (0 for unknown)
+std::string Make;                   // Camera manufacturer's name
+std::string Model;                  // Camera model
+uint16_t BitsPerSample;             // Number of bits per component (0 for unknown)
+std::string DateTime;               // File change date and time
+std::string DateTimeOriginal;       // Original file date and time (may not exist)
+std::string SubSecTimeOriginal;     // Sub-second time that original picture was taken
+double FNumber;                     // F/stop
+ExposureProgram exposureProgram;    // from enum - Exposure program
+uint16_t ISOSpeedRatings;           // ISO speed
+double ShutterSpeedValue;           // Shutter speed (reciprocal of exposure time)
+double ApertureValue;               // The lens aperture
+double BrightnessValue;             // The value of brightness
+double ExposureBiasValue;           // Exposure bias value in EV
+double SubjectDistance;             // Distance to focus point in meters
+double FocalLength;                 // Focal length of lens in millimeters
+MeteringMode meteringMode;          // from enum - Metering mode

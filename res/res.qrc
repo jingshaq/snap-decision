@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>icon2.png</file>
+        <file>ec.png</file>
+        <file>zoom.png</file>
+        <file>f.png</file>
+        <file>iso.png</file>
+        <file>fox_file_grey.png</file>
+        <file>fox_file_green.png</file>
+        <file>fox_file_blue.png</file>
+        <file>fox_file_red.png</file>
+        <file>burst.png</file>
+        <file>location.png</file>
+    </qresource>
+</RCC>
