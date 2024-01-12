@@ -50,7 +50,7 @@ The DatabaseManager class is essential for data persistence and efficient state 
 
 ## Technical Details
 - Uses SQLite and Qt's QtSql module.
-- Robust error handling and logging.
+- Error handling and logging.
 
 ---
 
@@ -73,13 +73,14 @@ Optimizes performance by managing image loading and caching.
 
 ## Performance Considerations
 - Efficient memory use with dynamic adjustment.
+- Predictive fetching.
 
 ---
 
 # Design Document: Qt Model for Image Hierarchy Display
 
 ## Concept
-Organizes images into a hierarchy based on time, location, and scenes.
+Organizes images into a hierarchy based on locations and high speed bursts.
 
 ## Key Components
 - ImageDescription Struct for image metadata.
