@@ -34,8 +34,8 @@ MainController::MainController(MainModel* model, MainWindow* view, Settings* set
   view->ui->treeView->expandAll();
   view->ui->treeView->setRootIsDecorated(false);
   view->ui->treeView->setItemsExpandable(false);
-  view->ui->treeView->setStyleSheet("QTreeView::branch {  border-image: url(none.png); }\n"
-                                    "QTreeView::item:disabled { color: black; }");
+   view->ui->treeView->setStyleSheet("QTreeView::branch {  border-image: url(none.png); }\n"
+                                     "QTreeView::item:disabled { color: black; }");
   view->initialize();
 
   QSettings qsettings("JasonIMercer", "SnapDecision");
@@ -51,6 +51,7 @@ void MainController::treeBuildComplete()
   const auto& image_group_ = model_->image_group_;
   model_->image_tree_model_->setImageRoot(image_group_->tree_root_);
   view_->ui->treeView->expandAll();
+  view_->ui->treeView->updateHides();
 
   QFileInfo fileInfo(resource_);
 
@@ -76,8 +77,6 @@ QStringList getImageFileExtensions() {
     }
     return extensions;
 }
-
-// Usage
 
 void MainController::loadResource(const QString& path)
 {
@@ -134,12 +133,16 @@ void MainController::setupConnections()
   connect(&model_->image_cache_->signal_emitter, SIGNAL(memoryUsageChanged(CurrentMaxCount)), this,
           SLOT(memoryUsageChanged(CurrentMaxCount)));
 
-  auto key_func = [this](QKeyEvent* event) { this->keyPressed(event); };
+  auto key_func = [this](QKeyEvent* event) { return this->keyPressed(event); };
 
   connect(view_->ui->actionTool1, &QAction::triggered, this, [this]() { executeTool(0); });
   connect(view_->ui->actionTool2, &QAction::triggered, this, [this]() { executeTool(1); });
   connect(view_->ui->actionTool3, &QAction::triggered, this, [this]() { executeTool(2); });
   connect(view_->ui->actionTool4, &QAction::triggered, this, [this]() { executeTool(3); });
+
+  connect(view_->ui->category_display, &CategoryDisplayWidget::activeChange, this, [this](DecisionType d, bool visible) {
+    view_->ui->treeView->setDecisionVisible(d, visible);
+  });
 
   view_->ui->graphicsView->key_event_function_ = key_func;
   view_->ui->treeView->key_event_function_ = key_func;
@@ -215,9 +218,9 @@ void MainController::focusOnNode(const QString& image_name)
 {
   auto treeView = view_->ui->treeView;
 
-  auto* model = static_cast<ImageTreeModel*>(treeView->model());
+  auto* model = model_->image_tree_model_.get();
 
-  QModelIndex index = model->indexForImage(image_name);
+  QModelIndex index = model->indexForImage(image_name);  // this used to use the treeView model()
   if (index.isValid())
   {
     treeView->setCurrentIndex(index);
@@ -264,7 +267,7 @@ void MainController::focusOnNode(const QString& image_name)
     if (node->f_number > 0)
     {
       std::ostringstream oss;
-      oss << "F " << node->f_number;
+      oss << "f/" << node->f_number;
       f = oss.str();
     }
 
@@ -314,11 +317,11 @@ void MainController::memoryUsageChanged(CurrentMaxCount cmc)
   }
 }
 
-void MainController::keyPressed(QKeyEvent* event)
+bool MainController::keyPressed(QKeyEvent* event)
 {
   if (!event)
   {
-    return;
+    return false;
   }
 
   const QKeySequence input((int)event->modifiers() | event->key());
@@ -329,116 +332,122 @@ void MainController::keyPressed(QKeyEvent* event)
   if (isMatch(settings_->key_pan_up_))
   {
     view_->ui->graphicsView->panView(0, pan_amount);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_pan_down_))
   {
     view_->ui->graphicsView->panView(0, -pan_amount);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_pan_left_))
   {
     view_->ui->graphicsView->panView(pan_amount, 0);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_pan_right_))
   {
     view_->ui->graphicsView->panView(-pan_amount, 0);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_vote_up_))
   {
-    vote(1);
-    event->accept();
-    return;
+    vote(currentNode(), 1);
+    return true;
   }
 
   if (isMatch(settings_->key_vote_down_))
   {
-    vote(-1);
-    event->accept();
-    return;
+    vote(currentNode(), -1);
+    return true;
   }
 
   if (isMatch(settings_->key_prev_image_))
   {
     view_->ui->treeView->navigate(-1);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_next_image_))
   {
     view_->ui->treeView->navigate(1);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_reset_view_))
   {
     view_->ui->graphicsView->fitPixmapInView();
-    event->accept();
-    return;
+    return true;
+  }
+
+  if (isMatch(settings_->key_unclassified_to_delete_and_next_))
+  {
+    if (currentDecision() == DecisionType::Unclassified)
+    {
+      vote(currentNode(), -2);
+    }
+    view_->ui->treeView->navigate(1);
+    return true;
+  }
+
+  if (isMatch(settings_->key_unclassified_to_keep_and_next_))
+  {
+    if (currentDecision() == DecisionType::Unclassified)
+    {
+      vote(currentNode(), 2);
+    }
+    view_->ui->treeView->navigate(1);
+    return true;
   }
 
   if (isMatch(settings_->key_delete_and_next_))
   {
-    vote(-2);
+    vote(currentNode(), -2);
     view_->ui->treeView->navigate(1);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_keep_and_next_))
   {
-    vote(2);
+    vote(currentNode(), 2);
     view_->ui->treeView->navigate(1);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_zoom_1_))
   {
     view_->ui->graphicsView->setViewLevel(1);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_zoom_2_))
   {
     view_->ui->graphicsView->setViewLevel(2);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_zoom_3_))
   {
     view_->ui->graphicsView->setViewLevel(3);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_zoom_4_))
   {
     view_->ui->graphicsView->setViewLevel(4);
-    event->accept();
-    return;
+    return true;
   }
 
   if (isMatch(settings_->key_zoom_5_))
   {
     view_->ui->graphicsView->setViewLevel(5);
-    event->accept();
-    return;
+    return true;
   }
+
+  return false;
 }
 
 void MainController::setSettings(const Settings& s)
@@ -606,9 +615,23 @@ void MainController::executeTool(int i)
   }
 }
 
-void MainController::vote(int direction)
+ImageDescriptionNode::Ptr MainController::currentNode()
 {
-  if (const auto& ptr = model_->image_group_->getNodeAtIndex(current_focus_index_); ptr)
+  return model_->image_group_->getNodeAtIndex(current_focus_index_);
+}
+
+DecisionType MainController::currentDecision()
+{
+  if (const auto& ptr = currentNode(); ptr)
+  {
+    return ptr->decision;
+  }
+  return DecisionType::Unknown;
+}
+
+void MainController::vote(const ImageDescriptionNode::Ptr& ptr, int direction)
+{
+  if (ptr)
   {
     if (decisionShift(ptr->decision, direction))
     {

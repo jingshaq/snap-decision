@@ -26,9 +26,11 @@ public slots:  // Slot declaration
 
 private:
   void executeTool(int i);
-  void vote(int direction);
+  void vote(const ImageDescriptionNode::Ptr& ptr, int direction);
+  ImageDescriptionNode::Ptr currentNode();
+  DecisionType currentDecision();
 
-  void keyPressed(QKeyEvent* event);
+  bool keyPressed(QKeyEvent* event);
   void setSettings(const Settings& s);
 
   MainModel* model_;

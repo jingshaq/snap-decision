@@ -54,7 +54,30 @@ void MainWindow::initialize()
 
   setImage(ui->lblECGfx, ":/images/ec.png");
   setImage(ui->lblZoomGfx, ":/images/zoom.png");
+  setImage(ui->lblFGfx, ":/images/aperture.png");
+  setImage(ui->lblTimeGfx, ":/images/clock.png");
+  setImage(ui->lblSpeedGfx, ":/images/timer.png");
   setImage(ui->lblIsoGfx, ":/images/iso.png");
+
+  const auto copyTip = [](auto* dest, auto* src) { dest->setToolTip(src->toolTip()); };
+
+  copyTip(ui->lblECVal, ui->lblECGfx);
+  copyTip(ui->lblZoomVal, ui->lblZoomGfx);
+  copyTip(ui->lblFval, ui->lblFGfx);
+  copyTip(ui->lblTime, ui->lblTimeGfx);
+  copyTip(ui->lblSpeedVal, ui->lblSpeedGfx);
+  copyTip(ui->lblIsoVal, ui->lblIsoGfx);
+
+  auto f = ui->lblTime->font();
+  f.setBold(false);
+
+  ui->lblTime->setFont(f);
+  ui->lblECVal->setFont(f);
+  ui->lblFval->setFont(f);
+  ui->lblIsoVal->setFont(f);
+  ui->lblSpeedVal->setFont(f);
+  ui->lblMode->setFont(f);
+  ui->lblZoomVal->setFont(f);
 }
 
 void MainWindow::openDialog()
@@ -108,6 +131,7 @@ void MainWindow::setImageProperties(const os& time, const os& mode, const os& zo
 
   ui->lblTime->setText(qs(time));
   ui->lineTime->setVisible(mode.has_value());
+  ui->lblTimeGfx->setVisible(mode.has_value());
 
   ui->lblMode->setText(qs(mode));
   ui->lineMode->setVisible(mode.has_value());
@@ -116,9 +140,11 @@ void MainWindow::setImageProperties(const os& time, const os& mode, const os& zo
   ui->lblZoomGfx->setEnabled(zoom.has_value());
 
   ui->lblSpeedVal->setText(qs(speed));
+  ui->lblSpeedGfx->setVisible(speed.has_value());
   ui->lineSpeed->setVisible(speed.has_value());
 
   ui->lblFval->setText(qs(f));
+  ui->lblFGfx->setEnabled(f.has_value());
   ui->lineF->setVisible(f.has_value());
 
   ui->lblECVal->setText(qs(ec));
@@ -164,7 +190,7 @@ void MainWindow::onTreeSelectionChanged(const QItemSelection& selected, const QI
 
   auto imageDesc = static_cast<ImageTreeModel*>(ui->treeView->model())->nodeFromIndex(currentIndex);
 
-  if (currentIndex.isValid())  // && QString::fromStdString(imageDesc->filename) == currentIndex.data().toString())
+  if (currentIndex.isValid())
   {
     emit imageFocused(QString::fromStdString(imageDesc->full_path));
   }

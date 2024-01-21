@@ -1,4 +1,5 @@
 #include "snapdecision/libjpegturbo_loader.h"
+#include <iostream>
 
 extern "C"
 {
@@ -15,7 +16,7 @@ static QImage loadJpegWithLibjpegTurbo(const QString& filename)
     throw std::runtime_error("Failed to initialize TurboJPEG decompressor");
   }
 
-  FILE* jpegFile = fopen(filename.toLocal8Bit().constData(), "rb");
+  FILE* jpegFile = fopen(filename.toStdString().c_str(), "rb");
   if (!jpegFile)
   {
     tjDestroy(decompressor);
@@ -46,7 +47,7 @@ static QImage loadJpegWithLibjpegTurbo(const QString& filename)
   }
 
   QImage image(width, height, QImage::Format_RGB888);
-  if (tjDecompress2(decompressor, jpegBuffer, size, image.bits(), width, 0, height, TJPF_RGB, 0) < 0)
+  if (tjDecompress2(decompressor, jpegBuffer, size, image.bits(), width, image.bytesPerLine(), height, TJPF_RGB, 0) < 0)
   {
     tjFree(jpegBuffer);
     tjDestroy(decompressor);

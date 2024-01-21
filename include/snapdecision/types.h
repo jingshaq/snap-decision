@@ -14,4 +14,5 @@ using CountPair = std::tuple<std::size_t, std::size_t>;
 
 using SimpleFunction = std::function<void()>;
 
-using keyEventFunction = std::function<void(QKeyEvent* event)>;
+// bool to indicate the eveent was used
+using keyEventFunction = std::function<bool(QKeyEvent* event)>;

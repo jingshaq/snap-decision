@@ -9,8 +9,8 @@
 #include <QVariant>
 
 #include "snapdecision/enums.h"
-#include "snapdecision/utils.h"
 #include "snapdecision/imagedescriptionnode.h"
+#include "snapdecision/utils.h"
 
 ImageTreeModel::ImageTreeModel(QObject* parent) : QAbstractItemModel(parent)
 {
@@ -94,7 +94,6 @@ QVariant ImageTreeModel::data(const QModelIndex& index, int role) const
 
   auto node = nodeFromIndex(index, root_.get());
 
-  // Display Role: Text display for the tree view
   if (role == Qt::DisplayRole)
   {
     switch (node->node_type)
@@ -271,3 +270,6 @@ Qt::ItemFlags ImageTreeModel::flags(const QModelIndex& index) const
   // Leaf nodes retain default behavior
   return defaultFlags;
 }
+
+
+

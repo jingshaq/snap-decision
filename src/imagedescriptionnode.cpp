@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "snapdecision/utils.h"
+#include "snapdecision/TinyEXIF.h"
 
 ImageDescriptionNode::ImageDescriptionNode(NodeType type) : node_type(type)
 {

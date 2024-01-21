@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "imagedescriptionnode.h"
+#include "snapdecision/enums.h"
 
 class ImageTreeModel : public QAbstractItemModel
 {
@@ -14,6 +15,7 @@ public:
 
   explicit ImageTreeModel(QObject* parent = nullptr);
   ~ImageTreeModel() override;
+
 
   // Required methods to override
   QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const override;
@@ -37,7 +39,7 @@ private:
   void recomputeCachedData();
 
   QVector<QString> file_list_;
-  QMap <QString, QModelIndex> index_for_image_;
+  QMap<QString, QModelIndex> index_for_image_;
 
   ImageDescriptionNode* nodeFromIndex(const QModelIndex& index, ImageDescriptionNode* fallback) const;
   ImageDescriptionNode::Ptr root_;
@@ -48,4 +50,6 @@ private:
   QIcon grey_image;
   QIcon burst_image;
   QIcon location_image;
+
 };
+

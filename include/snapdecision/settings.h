@@ -18,8 +18,10 @@ struct Settings
 
   QKeySequence key_next_image_{ Qt::Key_Right };
   QKeySequence key_prev_image_{ Qt::Key_Left };
-  QKeySequence key_keep_and_next_{ Qt::Key_Space };
-  QKeySequence key_delete_and_next_{ Qt::Key_X };
+  QKeySequence key_keep_and_next_{ Qt::SHIFT | Qt::Key_Space };
+  QKeySequence key_delete_and_next_{ Qt::SHIFT |Qt::Key_X };
+  QKeySequence key_unclassified_to_keep_and_next_{ Qt::Key_Space };
+  QKeySequence key_unclassified_to_delete_and_next_{ Qt::Key_X };
 
   QKeySequence key_pan_left_{ Qt::SHIFT | Qt::Key_Left };
   QKeySequence key_pan_right_{ Qt::SHIFT | Qt::Key_Right };
@@ -48,8 +50,9 @@ struct Settings
   };
 
   std::array<Tool, 4> tool{
-    Tool{true, "Open in Gimp", "D:/Program Files/GIMP 2/bin/gimp-2.10.exe %p", QKeySequence{Qt::CTRL |  Qt::Key_G}},
-    {},{},{}
+    Tool{true, "Open in Gimp", "\"C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe\" %p", QKeySequence{Qt::CTRL |  Qt::Key_G}},
+    Tool{true, "Open in Topaz Photo AI", "powershell -Command \"Start-Process 'C:\\Program Files\\Topaz Labs LLC\\Topaz Photo AI\\Topaz Photo AI.exe' -ArgumentList %r\"", QKeySequence{Qt::CTRL |  Qt::Key_T}},
+    {},{}
   };
 };
 

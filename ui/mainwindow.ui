@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1034</width>
-    <height>603</height>
+    <width>955</width>
+    <height>653</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -44,6 +44,9 @@
           <height>100</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Clicking on these colors will apply or remove a one-time filter to hide or show images of the corresponding classification.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
@@ -67,8 +70,21 @@
       </item>
       <item>
        <widget class="QLabel" name="lblTime">
+        <property name="toolTip">
+         <string/>
+        </property>
         <property name="text">
          <string>Image Time</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="lblTimeGfx">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Time stamp indicates the exact date and time when the photo was taken. Useful for organizing, tracking, and referencing photos chronologically.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>time gfx</string>
         </property>
        </widget>
       </item>
@@ -81,6 +97,9 @@
       </item>
       <item>
        <widget class="QLabel" name="lblMode">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Exposure Program sets the camera's mode for determining exposure. Choices like Auto, Aperture Priority, Shutter Priority, or Manual allow varying levels of control over aperture, shutter speed, and ISO to suit different shooting conditions and creative preferences.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;mode&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
@@ -108,6 +127,9 @@
       </item>
       <item>
        <widget class="QLabel" name="lblZoomGfx">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Focal length, measured in millimeters, determines the lens's field of view. Shorter focal lengths (e.g., 24mm) provide a wider view, ideal for landscapes. Longer focal lengths (e.g., 800mm) offer a narrower view, suitable for zooming in on distant subjects.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>Z gfx</string>
         </property>
@@ -134,6 +156,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="lblSpeedGfx">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Shutter speed determines how long the camera's shutter is open, affecting motion capture and exposure. Faster speeds (e.g., 1/2000 sec) freeze motion, ideal for action shots. Slower speeds (e.g., 1 sec) capture more light and motion, suitable for low-light or creative blur effects.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>speed gfx</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="Line" name="lineSpeed">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -147,6 +179,16 @@
         </property>
         <property name="scaledContents">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="lblFGfx">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;F number (f-stop) controls the lens aperture size, affecting depth of field and light entry. Lower f-stops (e.g., f/1.4) allow more light, creating a shallow depth of field. Higher f-stops (e.g., f/16) allow less light, creating a wider depth of field.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>F gfx</string>
         </property>
        </widget>
       </item>
@@ -169,6 +211,9 @@
       </item>
       <item>
        <widget class="QLabel" name="lblECGfx">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Exposure correction adjusts the photo's brightness. Positive values brighten the image, useful in low-light conditions. Negative values darken the image, helpful in overly bright situations.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string>EC gfx</string>
         </property>
@@ -196,6 +241,9 @@
       </item>
       <item>
        <widget class="QLabel" name="lblIsoGfx">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;ISO value indicates the photo's sensitivity to light. Lower ISO (e.g., 100) means less sensitivity and finer grain, ideal for bright settings. Higher ISO (e.g., 10000) increases sensitivity and grain, better for low-light conditions.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
         <property name="text">
          <string/>
         </property>
@@ -279,7 +327,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1034</width>
+     <width>955</width>
      <height>26</height>
     </rect>
    </property>

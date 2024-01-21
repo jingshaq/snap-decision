@@ -42,8 +42,8 @@ void BorderWidget::showDecision(DecisionType d)
 void BorderWidget::startBlinking(DecisionType d)
 {
   blink_color_ = decisionColor(d);
-
-  blink_timer_.start(125);
+  blink_border_size_ = 10;
+  blink_timer_.start(100);
 
   // Stop the previous single-shot timer if it's running
   if (single_shot_timer_.isActive())
@@ -52,7 +52,7 @@ void BorderWidget::startBlinking(DecisionType d)
   }
 
   // Start the single-shot timer
-  single_shot_timer_.start(750);
+  single_shot_timer_.start(500);
 }
 
 void BorderWidget::paintEvent(QPaintEvent*)

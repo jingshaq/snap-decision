@@ -11,5 +11,9 @@
         <file>fox_file_red.png</file>
         <file>burst.png</file>
         <file>location.png</file>
+        <file>aperture.png</file>
+        <file>hourglass.png</file>
+        <file>clock.png</file>
+        <file>timer.png</file>
     </qresource>
 </RCC>

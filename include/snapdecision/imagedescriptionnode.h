@@ -1,10 +1,11 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <type_traits>
 #include <vector>
 
-#include "snapdecision/TinyEXIF.h"
 #include "snapdecision/databasemanager.h"
 #include "snapdecision/imagecache.h"
 
@@ -37,6 +38,71 @@ struct ImageDescriptionNode
 
   DecisionType decision{ DecisionType::Unclassified };
   ExposureProgram exposure_program{ ExposureProgram::NotDefined };
+
+  template <typename C, typename T = typename std::invoke_result_t<C, ImageDescriptionNode*>>
+  std::optional<T> leafConsensus(C callable)
+  {
+    if (children.empty())  // then leaf
+    {
+      return callable(this);
+    }
+
+    std::optional<T> consensus = children.front()->leafConsensus(callable);
+
+    if (!consensus.has_value())
+    {
+      return consensus;
+    }
+
+    for (std::size_t i = 1; i < children.size(); i++)
+    {
+      const auto cc = children[i]->leafConsensus(callable);
+
+      if (!cc.has_value())
+      {
+        return cc;
+      }
+
+      if (cc.value() != consensus.value())
+      {
+        return std::nullopt;
+      }
+    }
+
+    return consensus;
+  }
+
+  std::optional<DecisionType> leafConsensusDecision() const
+  {
+    if (children.empty())  // then leaf
+    {
+      return decision;
+    }
+
+    std::optional<DecisionType> consensus = children.front()->leafConsensusDecision();
+
+    if (!consensus.has_value())
+    {
+      return consensus;
+    }
+
+    for (std::size_t i = 1; i < children.size(); i++)
+    {
+      const auto cc = children[i]->leafConsensusDecision();
+
+      if (!cc.has_value())
+      {
+        return cc;
+      }
+
+      if (cc.value() != consensus.value())
+      {
+        return std::nullopt;
+      }
+    }
+
+    return consensus;
+  }
 
   std::string exposureProgramString() const
   {

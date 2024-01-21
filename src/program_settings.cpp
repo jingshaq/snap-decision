@@ -32,6 +32,9 @@ void ProgramSettings::setSettings(const Settings& s)
   f(ui->keyKeepAndNext, s.key_keep_and_next_);
   f(ui->keyDeleteAndNext, s.key_delete_and_next_);
 
+  f(ui->keyUnclassifiedToDeleteAndNext, s.key_unclassified_to_delete_and_next_);
+  f(ui->keyUnclassifiedToKeepAndNext, s.key_unclassified_to_keep_and_next_);
+
   f(ui->keyPanLeft, s.key_pan_left_);
   f(ui->keyPanRight, s.key_pan_right_);
   f(ui->keyPanUp, s.key_pan_up_);
@@ -91,6 +94,9 @@ Settings ProgramSettings::getSettings() const
   f(ui->keyPrevImage, s.key_prev_image_);
   f(ui->keyKeepAndNext, s.key_keep_and_next_);
   f(ui->keyDeleteAndNext, s.key_delete_and_next_);
+
+  f(ui->keyUnclassifiedToDeleteAndNext, s.key_unclassified_to_delete_and_next_);
+  f(ui->keyUnclassifiedToKeepAndNext, s.key_unclassified_to_keep_and_next_);
 
   f(ui->keyPanLeft, s.key_pan_left_);
   f(ui->keyPanRight, s.key_pan_right_);

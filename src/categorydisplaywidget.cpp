@@ -1,4 +1,5 @@
 #include "snapdecision/categorydisplaywidget.h"
+#include "qnamespace.h"
 
 #include <QPainter>
 #include <algorithm>
@@ -139,31 +140,110 @@ void CategoryDisplayWidget::paintEvent(QPaintEvent* event)
   int fontSize = static_cast<int>(h * 0.8);
   QFont font = painter.font();
   font.setPixelSize(fontSize);
+  font.setBold(true);
   painter.setFont(font);
 
   const auto& [wd, wu, wk] = splitWidth({ delete_count_, unclassified_count_, keep_count_ }, width(), 20);
 
+  width_delete_ = wd;
+  width_unclassified_ = wu;
+  width_keep_ = wk;
+
   if (wd + wu + wk > 0)
   {
-    if (delete_count_)
+    if (delete_count_ && delete_active_)
     {
       // Draw the 'delete' section
       QRect deleteRect(frame_width, frame_width, wd - frame_width, h);
       painter.fillRect(deleteRect, color_delete_);
+
+      painter.setPen(QPen(Qt::white));
       painter.drawText(deleteRect, Qt::AlignCenter, QString::number(delete_count_));
     }
 
-    if (unclassified_count_)
+    if (delete_count_ && !delete_active_)
+    {
+      // Draw the 'delete' section
+      QRect deleteRect(frame_width, frame_width, wd - frame_width, h);
+
+      // Create a QPixmap and draw diagonal stripes on it
+      QPixmap pixmap(20, 20);  // Adjust size as needed for the pattern
+      pixmap.fill(color_delete_.darker(150));
+      QPainter pixmapPainter(&pixmap);
+      pixmapPainter.setPen(QPen(color_delete_, 3));  // Adjust pen width for stripe thickness
+
+      // Draw diagonal lines
+      for (int i = -pixmap.height(); i < pixmap.width(); i += 10)
+      {  // Adjust step for stripe density
+        pixmapPainter.drawLine(i, 0, i + pixmap.height(), pixmap.height());
+      }
+
+      // Create a brush with the pixmap
+      QBrush brush(pixmap);
+      painter.fillRect(deleteRect, brush);
+      painter.setPen(QPen(Qt::black));
+      painter.drawText(deleteRect, Qt::AlignCenter, QString::number(delete_count_));
+    }
+
+    if (unclassified_count_ && unclassified_active_)
     {
       QRect unclassifiedRect(wd, frame_width, wu, h);
       painter.fillRect(unclassifiedRect, color_unclassified_);
+      painter.setPen(QPen(Qt::white));
       painter.drawText(unclassifiedRect, Qt::AlignCenter, QString::number(unclassified_count_));
     }
 
-    if (keep_count_)
+    if (unclassified_count_ && !unclassified_active_)
+    {
+      QRect unclassifiedRect(wd, frame_width, wu, h);
+
+      // Create a QPixmap and draw diagonal stripes on it
+      QPixmap pixmap(20, 20);  // Adjust size as needed for the pattern
+      pixmap.fill(color_unclassified_.darker(150));
+      QPainter pixmapPainter(&pixmap);
+      pixmapPainter.setPen(QPen(color_unclassified_, 3));  // Adjust pen width for stripe thickness
+
+      // Draw diagonal lines
+      for (int i = -pixmap.height(); i < pixmap.width(); i += 10)
+      {  // Adjust step for stripe density
+        pixmapPainter.drawLine(i, 0, i + pixmap.height(), pixmap.height());
+      }
+
+      // Create a brush with the pixmap
+      QBrush brush(pixmap);
+      painter.fillRect(unclassifiedRect, brush);
+      painter.setPen(QPen(Qt::black));
+      painter.drawText(unclassifiedRect, Qt::AlignCenter, QString::number(unclassified_count_));
+    }
+
+    if (keep_count_ && keep_active_)
     {
       QRect keepRect(wd + wu, frame_width, wk - frame_width, h);
       painter.fillRect(keepRect, color_keep_);
+      painter.setPen(QPen(Qt::white));
+      painter.drawText(keepRect, Qt::AlignCenter, QString::number(keep_count_));
+    }
+
+    if (keep_count_ && !keep_active_)
+    {
+      QRect keepRect(wd + wu, frame_width, wk - frame_width, h);
+
+      // Create a QPixmap and draw diagonal stripes on it
+      QPixmap pixmap(20, 20);  // Adjust size as needed for the pattern
+      pixmap.fill(color_keep_.darker(150));
+      QPainter pixmapPainter(&pixmap);
+      pixmapPainter.setPen(QPen(color_keep_, 3));  // Adjust pen width for stripe thickness
+
+      // Draw diagonal lines
+      for (int i = -pixmap.height(); i < pixmap.width(); i += 10)
+      {  // Adjust step for stripe density
+        pixmapPainter.drawLine(i, 0, i + pixmap.height(), pixmap.height());
+      }
+
+      // Create a brush with the pixmap
+      QBrush brush(pixmap);
+      painter.fillRect(keepRect, brush);
+      painter.setPen(QPen(Qt::black));
       painter.drawText(keepRect, Qt::AlignCenter, QString::number(keep_count_));
     }
   }
@@ -174,4 +254,51 @@ void CategoryDisplayWidget::paintEvent(QPaintEvent* event)
     painter.fillRect(r, Qt::gray);
     painter.drawText(r, Qt::AlignCenter, "No files loaded");
   }
+}
+
+void CategoryDisplayWidget::mousePressEvent(QMouseEvent* event)
+{
+  int x = event->position().x();
+
+  if (x < width_delete_)
+  {
+    setState(0, !delete_active_);
+    return;
+  }
+
+  if ((x - width_delete_) < width_unclassified_)
+  {
+    setState(1, !unclassified_active_);
+    return;
+  }
+
+  if ((x - width_delete_ - width_unclassified_) < width_keep_)
+  {
+    setState(2, !keep_active_);
+    return;
+  }
+}
+
+void CategoryDisplayWidget::setState(int which, bool new_value)
+{
+  if (which == 0)
+  {
+    delete_active_ = new_value;
+
+    emit activeChange(DecisionType::Delete, delete_active_);
+  }
+
+  if (which == 1)
+  {
+    unclassified_active_ = new_value;
+    emit activeChange(DecisionType::Unclassified, unclassified_active_);
+  }
+
+  if (which == 2)
+  {
+    keep_active_ = new_value;
+    emit activeChange(DecisionType::Keep, keep_active_);
+  }
+
+  update();
 }
