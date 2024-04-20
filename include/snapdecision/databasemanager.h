@@ -64,7 +64,7 @@ public:
   std::optional<double> getFocalLength(const std::string& image_path);
   std::optional<int> getOrientation(const std::string& image_path);
 
-  std::array<std::size_t, 4> getDecisionCounts();
+  std::array<std::size_t, 5> getDecisionCounts();
 
   std::optional<DecisionType> getDecision(const std::string& image_path);
   std::optional<ExposureProgram> getExposureProgram(const std::string& image_path);

@@ -611,16 +611,17 @@ std::optional<int> DatabaseManager::getOrientation(const std::string& image_path
   return getColumnValue<int>(*db, diagnostic_function_, image_path, "orientation");
 }
 
-std::array<std::size_t, 4> DatabaseManager::getDecisionCounts()
+std::array<std::size_t, 5> DatabaseManager::getDecisionCounts()
 {
   std::lock_guard lock(mutex_);
   QSqlQuery query(*db);
 
-  std::array<std::size_t, 4> counts;
+  std::array<std::size_t, 5> counts;
   counts[0] = 0;
   counts[1] = 0;
   counts[2] = 0;
   counts[3] = 0;
+  counts[4] = 0;
 
   // SQL query to count different DecisionType values
   std::string countQuery = "SELECT decision, COUNT(decision) FROM image_data GROUP BY decision";
@@ -647,9 +648,12 @@ std::array<std::size_t, 4> DatabaseManager::getDecisionCounts()
         case DecisionType::Unclassified:
           counts[2] += query.value(1).toULongLong();
           break;
-        case DecisionType::Keep:
-          counts[3] += query.value(1).toULongLong();
-          break;
+      case DecisionType::Keep:
+        counts[3] += query.value(1).toULongLong();
+        break;
+      case DecisionType::SuperKeep:
+        counts[4] += query.value(1).toULongLong();
+        break;
       }
     }
   }

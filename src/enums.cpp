@@ -91,3 +91,60 @@ ExposureProgram to_ExposureProgram(const std::string& str)
     return ExposureProgram::LandscapeMode;
   return ExposureProgram::NotDefined;
 }
+
+
+bool decisionShift(DecisionType& base, int shift)
+{
+  if (shift == 0)
+  {
+    return false;
+  }
+
+  if (shift > 0)
+  {
+    switch (base)
+    {
+    case DecisionType::Unclassified:
+    case DecisionType::Unknown:
+      base = DecisionType::Keep;
+      return true;
+
+    case DecisionType::Delete:
+      base = DecisionType::Unclassified;
+      return true;
+
+    case DecisionType::Keep:
+      base = DecisionType::SuperKeep;
+      return true;
+
+    case DecisionType::SuperKeep:
+      return false;
+    }
+  }
+
+  if (shift < 0)
+  {
+    switch (base)
+    {
+    case DecisionType::Unclassified:
+    case DecisionType::Unknown:
+      base = DecisionType::Delete;
+      return true;
+
+    case DecisionType::Delete:
+      return false;
+
+    case DecisionType::Keep:
+      base = DecisionType::Unclassified;
+      return true;
+
+    case DecisionType::SuperKeep:
+      base = DecisionType::Keep;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+

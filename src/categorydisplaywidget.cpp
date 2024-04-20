@@ -5,10 +5,12 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <tuple>
 
-void ensureMinimum(std::array<double, 3>& values, const double min_finite)
+template <std::size_t N>
+void ensureMinimum(std::array<double, N>& values, const double min_finite)
 {
+  if (N == 0) return;
+
   double total_excess = 0.0;
   double total_value = 0.0;
 
@@ -28,7 +30,7 @@ void ensureMinimum(std::array<double, 3>& values, const double min_finite)
   {
     // Calculate proportions and perform redistribution
     double excess_distributed = 0.0;
-    for (int i = 0; i < 2; ++i)
+    for (int i = 0; i < N - 1; ++i)
     {
       if (values[i] > min_finite)
       {
@@ -40,7 +42,7 @@ void ensureMinimum(std::array<double, 3>& values, const double min_finite)
     }
 
     // Distribute any remaining excess from the last element to the first
-    for (int i = 2; i >= 0; --i)
+    for (int i = N - 1; i >= 0; --i)
     {
       if (values[i] > min_finite && total_excess > excess_distributed)
       {
@@ -59,14 +61,15 @@ void ensureMinimum(std::array<double, 3>& values, const double min_finite)
   }
 }
 
-std::array<int, 3> roundToIntegers(const std::array<double, 3>& values)
+template <std::size_t N>
+std::array<int, N> roundToIntegers(const std::array<double, N>& values)
 {
-  std::array<int, 3> roundedValues;
+  std::array<int, N> roundedValues;
   double totalOriginalSum = 0.0;
   int totalRoundedSum = 0;
 
   // First, round each value normally
-  for (int i = 0; i < 3; ++i)
+  for (int i = 0; i < N; ++i)
   {
     roundedValues[i] = std::round(values[i]);
     totalOriginalSum += values[i];
@@ -80,24 +83,32 @@ std::array<int, 3> roundToIntegers(const std::array<double, 3>& values)
   for (int i = 0; i < std::abs(error); ++i)
   {
     // Adjust the element by 1 to correct the error
-    roundedValues[i % 3] += (error > 0) ? 1 : -1;
+    roundedValues[i % N] += (error > 0) ? 1 : -1;
   }
 
   return roundedValues;
 }
-std::array<int, 3> splitWidth(const std::tuple<int, int, int>& input_values, int overall_width, int min_width)
+
+template <std::size_t N>
+std::array<int, N> splitWidth(const std::array<int, N>& input_values, int overall_width, int min_width)
 {
-  auto [a_value, b_value, c_value] = input_values;
-  int total_input = a_value + b_value + c_value;
+  int total_input = 0;
+  for (const auto input_value : input_values)
+  {
+    total_input += input_value;
+  }
 
   if (total_input == 0)
   {
     return { 0, 0, 0 };
   }
 
-  std::array<double, 3> split_widths = { static_cast<double>(overall_width * a_value) / total_input,
-                                         static_cast<double>(overall_width * b_value) / total_input,
-                                         static_cast<double>(overall_width * c_value) / total_input };
+  std::array<double, N> split_widths;
+
+  for (std::size_t i = 0; i < N; i++)
+  {
+    split_widths[i] = static_cast<double>(static_cast<double>(overall_width * input_values[i]) / total_input);
+  }
 
   ensureMinimum(split_widths, min_width);
 
@@ -108,17 +119,19 @@ CategoryDisplayWidget::CategoryDisplayWidget(QWidget* parent) : QFrame(parent)
 {
   color_delete_ = QColor::fromString("#fd4949");
   color_keep_ = QColor::fromString("#2fe74a");
+  color_gold_ = QColor::fromString("#e2bc00");
   color_unclassified_ = QColor::fromString("#2988ce");
 
   setMinimumWidth(100);
   setMaximumWidth(300);
 }
 
-void CategoryDisplayWidget::setCounts(int deleteCount, int unclassifiedCount, int keep_count)
+void CategoryDisplayWidget::setCounts(int deleteCount, int unclassifiedCount, int keep_count, int superkeep_count)
 {
   delete_count_ = deleteCount;
   unclassified_count_ = unclassifiedCount;
   keep_count_ = keep_count;
+  superkeep_count_ = superkeep_count;
 
   update();
 }
@@ -143,13 +156,14 @@ void CategoryDisplayWidget::paintEvent(QPaintEvent* event)
   font.setBold(true);
   painter.setFont(font);
 
-  const auto& [wd, wu, wk] = splitWidth({ delete_count_, unclassified_count_, keep_count_ }, width(), 20);
+  const auto& [wd, wu, wk, wsk] = splitWidth<4>({ delete_count_, unclassified_count_, keep_count_, superkeep_count_ }, width(), 20);
 
   width_delete_ = wd;
   width_unclassified_ = wu;
   width_keep_ = wk;
+  width_superkeep_ = wsk;
 
-  if (wd + wu + wk > 0)
+  if (wd + wu + wk + wsk > 0)
   {
     if (delete_count_ && delete_active_)
     {
@@ -244,7 +258,38 @@ void CategoryDisplayWidget::paintEvent(QPaintEvent* event)
       QBrush brush(pixmap);
       painter.fillRect(keepRect, brush);
       painter.setPen(QPen(Qt::black));
-      painter.drawText(keepRect, Qt::AlignCenter, QString::number(keep_count_));
+      painter.drawText(keepRect, Qt::AlignCenter, QString::number(superkeep_count_));
+    }
+
+    if (superkeep_count_ && superkeep_active_)
+    {
+      QRect superkeepRect(wd + wu + wk, frame_width, wsk - frame_width, h);
+      painter.fillRect(superkeepRect, color_gold_);
+      painter.setPen(QPen(Qt::white));
+      painter.drawText(superkeepRect, Qt::AlignCenter, QString::number(superkeep_count_));
+    }
+
+    if (superkeep_count_ && !superkeep_active_)
+    {
+      QRect keepRect(wd + wu + wk, frame_width, wsk - frame_width, h);
+
+      // Create a QPixmap and draw diagonal stripes on it
+      QPixmap pixmap(20, 20);  // Adjust size as needed for the pattern
+      pixmap.fill(color_keep_.darker(150));
+      QPainter pixmapPainter(&pixmap);
+      pixmapPainter.setPen(QPen(color_gold_, 3));  // Adjust pen width for stripe thickness
+
+      // Draw diagonal lines
+      for (int i = -pixmap.height(); i < pixmap.width(); i += 10)
+      {  // Adjust step for stripe density
+        pixmapPainter.drawLine(i, 0, i + pixmap.height(), pixmap.height());
+      }
+
+      // Create a brush with the pixmap
+      QBrush brush(pixmap);
+      painter.fillRect(keepRect, brush);
+      painter.setPen(QPen(Qt::black));
+      painter.drawText(keepRect, Qt::AlignCenter, QString::number(superkeep_count_));
     }
   }
   else
@@ -277,6 +322,12 @@ void CategoryDisplayWidget::mousePressEvent(QMouseEvent* event)
     setState(2, !keep_active_);
     return;
   }
+
+  if ((x - width_delete_ - width_unclassified_ - width_keep_) < width_superkeep_)
+  {
+    setState(3, !superkeep_active_);
+    return;
+  }
 }
 
 void CategoryDisplayWidget::setState(int which, bool new_value)
@@ -298,6 +349,12 @@ void CategoryDisplayWidget::setState(int which, bool new_value)
   {
     keep_active_ = new_value;
     emit activeChange(DecisionType::Keep, keep_active_);
+  }
+
+  if (which == 3)
+  {
+    superkeep_active_ = new_value;
+    emit activeChange(DecisionType::SuperKeep, superkeep_active_);
   }
 
   update();

@@ -26,7 +26,11 @@ public slots:  // Slot declaration
 
 private:
   void executeTool(int i);
-  void vote(const ImageDescriptionNode::Ptr& ptr, int direction);
+  void removeAllDecisions();
+
+  void voteAdjust(const ImageDescriptionNode::Ptr& ptr, int direction);
+  void voteSet(const ImageDescriptionNode::Ptr& ptr, DecisionType decision);
+
   ImageDescriptionNode::Ptr currentNode();
   DecisionType currentDecision();
 

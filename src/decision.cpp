@@ -5,8 +5,10 @@ QColor decisionColor(DecisionType d)
 {
   switch (d)
   {
-    case DecisionType::Keep:
-      return QColor(47, 232, 74);
+  case DecisionType::SuperKeep:
+    return QColor(255, 215, 0);
+  case DecisionType::Keep:
+    return QColor(47, 232, 74);
     case DecisionType::Delete:
       return QColor(255, 74, 74);
     case DecisionType::Unclassified:
@@ -19,6 +21,7 @@ QColor decisionColor(DecisionType d)
 
 std::string to_string(DecisionType decision) {
   switch (decision) {
+  case DecisionType::SuperKeep: return "SuperKeep";
   case DecisionType::Keep: return "Keep";
   case DecisionType::Delete: return "Delete";
   case DecisionType::Unclassified: return "Unclassified";
@@ -28,6 +31,7 @@ std::string to_string(DecisionType decision) {
 }
 
 DecisionType to_DecisionType(const std::string& str) {
+  if (str == "SuperKeep") return DecisionType::SuperKeep;
   if (str == "Keep") return DecisionType::Keep;
   if (str == "Delete") return DecisionType::Delete;
   if (str == "Unclassified") return DecisionType::Unclassified;

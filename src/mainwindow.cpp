@@ -26,6 +26,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent), ui(new Ui::MainWi
 
   ui->hsplitter->restoreState(qsettings.value("hsplitState").toByteArray());
   ui->splitter->restoreState(qsettings.value("splitState").toByteArray());
+
+
+  ui->toolContainerWidget->deleteLater();
+  //ui->statusbar->addPermanentWidget(ui->toolContainerWidget);
 }
 
 MainWindow::~MainWindow()

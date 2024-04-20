@@ -34,8 +34,8 @@ MainController::MainController(MainModel* model, MainWindow* view, Settings* set
   view->ui->treeView->expandAll();
   view->ui->treeView->setRootIsDecorated(false);
   view->ui->treeView->setItemsExpandable(false);
-   view->ui->treeView->setStyleSheet("QTreeView::branch {  border-image: url(none.png); }\n"
-                                     "QTreeView::item:disabled { color: black; }");
+  view->ui->treeView->setStyleSheet("QTreeView::branch {  border-image: url(none.png); }\n"
+                                    "QTreeView::item:disabled { color: black; }");
   view->initialize();
 
   QSettings qsettings("JasonIMercer", "SnapDecision");
@@ -69,13 +69,14 @@ void MainController::treeBuildComplete()
   updateDecisionCounts();
 }
 
-
-QStringList getImageFileExtensions() {
-    QStringList extensions;
-    foreach (QByteArray format, QImageReader::supportedImageFormats()) {
-        extensions.append("*." + format);
-    }
-    return extensions;
+QStringList getImageFileExtensions()
+{
+  QStringList extensions;
+  foreach (QByteArray format, QImageReader::supportedImageFormats())
+  {
+    extensions.append("*." + format);
+  }
+  return extensions;
 }
 
 void MainController::loadResource(const QString& path)
@@ -110,8 +111,6 @@ void MainController::loadResource(const QString& path)
 
   QStringList files = directory.entryList(getImageFileExtensions());
 
-
-
   for (const QString& file : files)
   {
     image_filenames.push_back(directory.absoluteFilePath(file).toStdString());
@@ -139,10 +138,10 @@ void MainController::setupConnections()
   connect(view_->ui->actionTool2, &QAction::triggered, this, [this]() { executeTool(1); });
   connect(view_->ui->actionTool3, &QAction::triggered, this, [this]() { executeTool(2); });
   connect(view_->ui->actionTool4, &QAction::triggered, this, [this]() { executeTool(3); });
+  connect(view_->ui->actionRemove_All_Decisions, &QAction::triggered, this, [this]() { removeAllDecisions(); });
 
-  connect(view_->ui->category_display, &CategoryDisplayWidget::activeChange, this, [this](DecisionType d, bool visible) {
-    view_->ui->treeView->setDecisionVisible(d, visible);
-  });
+  connect(view_->ui->category_display, &CategoryDisplayWidget::activeChange, this,
+          [this](DecisionType d, bool visible) { view_->ui->treeView->setDecisionVisible(d, visible); });
 
   view_->ui->graphicsView->key_event_function_ = key_func;
   view_->ui->treeView->key_event_function_ = key_func;
@@ -355,13 +354,13 @@ bool MainController::keyPressed(QKeyEvent* event)
 
   if (isMatch(settings_->key_vote_up_))
   {
-    vote(currentNode(), 1);
+    voteAdjust(currentNode(), 1);
     return true;
   }
 
   if (isMatch(settings_->key_vote_down_))
   {
-    vote(currentNode(), -1);
+    voteAdjust(currentNode(), -1);
     return true;
   }
 
@@ -387,7 +386,7 @@ bool MainController::keyPressed(QKeyEvent* event)
   {
     if (currentDecision() == DecisionType::Unclassified)
     {
-      vote(currentNode(), -2);
+      voteSet(currentNode(), DecisionType::Delete);
     }
     view_->ui->treeView->navigate(1);
     return true;
@@ -397,7 +396,17 @@ bool MainController::keyPressed(QKeyEvent* event)
   {
     if (currentDecision() == DecisionType::Unclassified)
     {
-      vote(currentNode(), 2);
+      voteSet(currentNode(), DecisionType::Keep);
+    }
+    view_->ui->treeView->navigate(1);
+    return true;
+  }
+
+  if (isMatch(settings_->key_unclassified_to_gold_and_next_))
+  {
+    if (currentDecision() == DecisionType::Unclassified)
+    {
+      voteSet(currentNode(), DecisionType::SuperKeep);
     }
     view_->ui->treeView->navigate(1);
     return true;
@@ -405,14 +414,21 @@ bool MainController::keyPressed(QKeyEvent* event)
 
   if (isMatch(settings_->key_delete_and_next_))
   {
-    vote(currentNode(), -2);
+    voteSet(currentNode(), DecisionType::Delete);
     view_->ui->treeView->navigate(1);
     return true;
   }
 
   if (isMatch(settings_->key_keep_and_next_))
   {
-    vote(currentNode(), 2);
+    voteSet(currentNode(), DecisionType::Keep);
+    view_->ui->treeView->navigate(1);
+    return true;
+  }
+
+  if (isMatch(settings_->key_gold_and_next_))
+  {
+    voteSet(currentNode(), DecisionType::SuperKeep);
     view_->ui->treeView->navigate(1);
     return true;
   }
@@ -494,8 +510,9 @@ void MainController::updateDecisionCounts()
   const int delete_count = static_cast<int>(counts[1]);
   const int unclassified_count = static_cast<int>(counts[2] + counts[0]);
   const int keep_count = static_cast<int>(counts[3]);
+  const int superkeep_count = static_cast<int>(counts[4]);
 
-  view_->ui->category_display->setCounts(delete_count, unclassified_count, keep_count);
+  view_->ui->category_display->setCounts(delete_count, unclassified_count, keep_count, superkeep_count);
 }
 
 std::string appendPathFragment(const std::string& filePath, std::string pathFragment)
@@ -603,8 +620,27 @@ void MainController::executeTool(int i)
     }
   }
 
-  command.replace("%p", QString("%1").arg(QString::fromStdString(node->full_path)));
-  command.replace("%r", QString("%1").arg(QString::fromStdString(node->full_raw_path)));
+  auto full_path = QString::fromStdString(node->full_path);
+  auto raw_path = QString::fromStdString(node->full_raw_path);
+
+  auto full_path_or_raw = full_path;
+  auto raw_path_or_full = raw_path;
+
+  if (full_path_or_raw.isEmpty())
+  {
+    full_path_or_raw = raw_path;
+  }
+
+  if (raw_path_or_full.isEmpty())
+  {
+    raw_path_or_full = full_path;
+  }
+
+  command.replace("%p", QString("%1").arg(full_path));
+  command.replace("%r", QString("%1").arg(raw_path));
+
+  command.replace("%P", QString("%1").arg(full_path_or_raw));
+  command.replace("%R", QString("%1").arg(raw_path_or_full));
 
   command.replace("\\", "/");
 
@@ -612,6 +648,25 @@ void MainController::executeTool(int i)
   if (!QProcess::startDetached(command))
   {
     view_->statusBar()->showMessage(QString("Failed to run: %1").arg(command), 5000);
+  }
+}
+
+void MainController::removeAllDecisions()
+{
+  for (auto& ptr : model_->image_group_->flat_list_)
+  {
+    if (ptr->decision != DecisionType::Unclassified)
+    {
+      ptr->decision = DecisionType::Unclassified;
+      model_->database_manager_->setDecision(ptr->full_path, ptr->decision);
+    }
+  }
+  view_->ui->treeView->doItemsLayout();
+  updateDecisionCounts();
+
+  if (currentNode())
+  {
+    view_->ui->graphicsView->setDecision(DecisionType::Unclassified);
   }
 }
 
@@ -629,7 +684,9 @@ DecisionType MainController::currentDecision()
   return DecisionType::Unknown;
 }
 
-void MainController::vote(const ImageDescriptionNode::Ptr& ptr, int direction)
+
+
+void MainController::voteAdjust(const ImageDescriptionNode::Ptr& ptr, int direction)
 {
   if (ptr)
   {
@@ -641,6 +698,21 @@ void MainController::vote(const ImageDescriptionNode::Ptr& ptr, int direction)
       updateDecisionCounts();
     }
   }
+}
+
+void MainController::voteSet(const ImageDescriptionNode::Ptr& ptr, DecisionType decision)
+{
+  if (ptr)
+  {
+    if (std::exchange(ptr->decision, decision) != decision)
+    {
+      model_->database_manager_->setDecision(ptr->full_path, ptr->decision);
+      view_->ui->graphicsView->setDecision(ptr->decision);
+      view_->ui->treeView->doItemsLayout();
+      updateDecisionCounts();
+    }
+  }
+
 }
 
 int MainController::predictNextNode(int step) const

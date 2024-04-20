@@ -19,8 +19,10 @@ struct Settings
   QKeySequence key_next_image_{ Qt::Key_Right };
   QKeySequence key_prev_image_{ Qt::Key_Left };
   QKeySequence key_keep_and_next_{ Qt::SHIFT | Qt::Key_Space };
+  QKeySequence key_gold_and_next_{ Qt::SHIFT | Qt::Key_G };
   QKeySequence key_delete_and_next_{ Qt::SHIFT |Qt::Key_X };
   QKeySequence key_unclassified_to_keep_and_next_{ Qt::Key_Space };
+  QKeySequence key_unclassified_to_gold_and_next_{ Qt::Key_G };
   QKeySequence key_unclassified_to_delete_and_next_{ Qt::Key_X };
 
   QKeySequence key_pan_left_{ Qt::SHIFT | Qt::Key_Left };

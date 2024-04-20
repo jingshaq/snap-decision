@@ -44,6 +44,7 @@ private:
   ImageDescriptionNode* nodeFromIndex(const QModelIndex& index, ImageDescriptionNode* fallback) const;
   ImageDescriptionNode::Ptr root_;
 
+  QIcon gold_image;
   QIcon green_image;
   QIcon red_image;
   QIcon blue_image;

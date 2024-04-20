@@ -80,7 +80,7 @@ Optimizes performance by managing image loading and caching.
 # Design Document: Qt Model for Image Hierarchy Display
 
 ## Concept
-Organizes images into a hierarchy based on locations and high speed bursts.
+Organizes images into a hierarchy based on time, location, and scenes.
 
 ## Key Components
 - ImageDescription Struct for image metadata.

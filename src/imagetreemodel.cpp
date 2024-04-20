@@ -14,6 +14,7 @@
 
 ImageTreeModel::ImageTreeModel(QObject* parent) : QAbstractItemModel(parent)
 {
+  gold_image = QIcon(QPixmap(":/images/fox_file_gold.png"));
   green_image = QIcon(QPixmap(":/images/fox_file_green.png"));
   red_image = QIcon(QPixmap(":/images/fox_file_red.png"));
   blue_image = QIcon(QPixmap(":/images/fox_file_blue.png"));
@@ -160,6 +161,8 @@ QVariant ImageTreeModel::data(const QModelIndex& index, int role) const
             return red_image;
           case DecisionType::Keep:
             return green_image;
+          case DecisionType::SuperKeep:
+            return gold_image;
           case DecisionType::Unclassified:
             return blue_image;
           case DecisionType::Unknown:

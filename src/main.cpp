@@ -49,9 +49,11 @@ void loadSettings(Settings& s)
   key("key_next_image_", &Settings::key_next_image_);
   key("key_prev_image_", &Settings::key_prev_image_);
   key("key_keep_and_next_", &Settings::key_keep_and_next_);
+  key("key_gold_and_next_", &Settings::key_gold_and_next_);
   key("key_delete_and_next_", &Settings::key_delete_and_next_);
   key("key_unclassified_to_delete_and_next_", &Settings::key_unclassified_to_delete_and_next_);
   key("key_unclassified_to_keep_and_next_", &Settings::key_unclassified_to_keep_and_next_);
+  key("key_unclassified_to_gold_and_next_", &Settings::key_unclassified_to_gold_and_next_);
 
   key("key_pan_left_", &Settings::key_pan_left_);
   key("key_pan_right_", &Settings::key_pan_right_);
@@ -96,9 +98,11 @@ void storeSettings(const Settings& s)
   key("key_next_image_", &Settings::key_next_image_);
   key("key_prev_image_", &Settings::key_prev_image_);
   key("key_keep_and_next_", &Settings::key_keep_and_next_);
+  key("key_gold_and_next_", &Settings::key_gold_and_next_);
   key("key_delete_and_next_", &Settings::key_delete_and_next_);
   key("key_unclassified_to_delete_and_next_", &Settings::key_unclassified_to_delete_and_next_);
   key("key_unclassified_to_keep_and_next_", &Settings::key_unclassified_to_keep_and_next_);
+  key("key_unclassified_to_gold_and_next_", &Settings::key_unclassified_to_gold_and_next_);
 
   key("key_pan_left_", &Settings::key_pan_left_);
   key("key_pan_right_", &Settings::key_pan_right_);
