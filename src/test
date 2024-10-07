@@ -1,0 +1,11 @@
+PRAGMA synchronous = OFF;
+PRAGMA journal_mode = WAL;
+
+强制刷新
+sqlite3_db_cacheflush(db);
+
+    db.query("PRAGMA wal_checkpoint(FULL);", emptyArray())
+        db.query("PRAGMA wal_checkpoint(TRUNCATE);", emptyArray()) 这两句有什么作用
+
+
+
