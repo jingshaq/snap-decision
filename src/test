@@ -4,8 +4,15 @@ PRAGMA journal_mode = WAL;
 强制刷新
 sqlite3_db_cacheflush(db);
 
-    db.query("PRAGMA wal_checkpoint(FULL);", emptyArray())
-        db.query("PRAGMA wal_checkpoint(TRUNCATE);", emptyArray()) 这两句有什么作用
+ db.query("PRAGMA wal_checkpoint(FULL);", emptyArray())
+ db.query("PRAGMA wal_checkpoint(TRUNCATE);", emptyArray())
 
 
+https://discuss.zetetic.net/t/libcrypto-on-ios-and-simulator/140
+./configure --enable-tempstore=yes --with-crypto-lib=commoncrypto CFLAGS="-DSQLITE_HAS_CODEC -DSQLITE_TEMP_STORE=2"
+make sqlite3.c
+exit 0
 
+https://blog.ismisv.com/2019/04/sqlcipher-android-upgrade-memior/
+
+https://kanchuan.com/blog/146-sqlite-sqlcipher
