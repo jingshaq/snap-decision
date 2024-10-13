@@ -16,3 +16,65 @@ exit 0
 https://blog.ismisv.com/2019/04/sqlcipher-android-upgrade-memior/
 
 https://kanchuan.com/blog/146-sqlite-sqlcipher
+
+
+#include <windows.h>
+#include <tlhelp32.h>
+#include <wtsapi32.h>
+#include <tchar.h>
+#include <iostream>
+
+#pragma comment(lib, "Wtsapi32.lib")
+
+bool IsExplorerRunningInCurrentSession()
+{
+    DWORD currentSessionId;
+    if (!ProcessIdToSessionId(GetCurrentProcessId(), &currentSessionId))
+    {
+        return false;
+    }
+
+    PROCESSENTRY32 pe32;
+    pe32.dwSize = sizeof(PROCESSENTRY32);
+
+    HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hProcessSnap == INVALID_HANDLE_VALUE)
+    {
+        return false;
+    }
+
+    if (Process32First(hProcessSnap, &pe32))
+    {
+        do
+        {
+            if (_tcsicmp(pe32.szExeFile, _T("explorer.exe")) == 0)
+            {
+                DWORD processSessionId;
+                if (ProcessIdToSessionId(pe32.th32ProcessID, &processSessionId) && processSessionId == currentSessionId)
+                {
+                    CloseHandle(hProcessSnap);
+                    return true;
+                }
+            }
+        } while (Process32Next(hProcessSnap, &pe32));
+    }
+
+    CloseHandle(hProcessSnap);
+    return false;
+}
+
+int main()
+{
+    if (IsExplorerRunningInCurrentSession())
+    {
+        // Explorer is running in current session, proceed with UI program startup
+        std::cout << "Explorer is running in the current session." << std::endl;
+    }
+    else
+    {
+        // Explorer is not running in the current session, wait or handle the situation
+        std::cout << "Explorer is not running in the current session." << std::endl;
+    }
+
+    return 0;
+}
