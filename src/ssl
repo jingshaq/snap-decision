@@ -32,3 +32,61 @@ func curlTest() {
 }
 
 curlTest()
+
+//
+import Foundation
+import libcurl
+
+func setupLibcurl() -> UnsafeMutableRawPointer? {
+    let handle = curl_easy_init()
+    if handle != nil {
+        // 公共配置项
+        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 1L)
+        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 2L)
+        
+        // 使用iOS系统自带的证书库并添加自签证书
+        curl_easy_setopt(handle, CURLOPT_SSL_CTX_FUNCTION, { (ctx, param) -> CURLcode in
+            // 使用iOS系统自带的证书
+            let status = SSL_CTX_set_default_verify_paths(ctx)
+            if status != 1 {
+                return CURLE_SSL_CERTPROBLEM
+            }
+            
+            // 添加自签证书
+            let x509Cert = """
+            -----BEGIN CERTIFICATE-----
+            MIICyzCCAbOgAwIBAgI...
+            -----END CERTIFICATE-----
+            """
+            
+            if let bio = BIO_new_mem_buf(x509Cert, Int32(x509Cert.count)) {
+                if let cert = PEM_read_bio_X509(bio, nil, nil, nil) {
+                    let store = SSL_CTX_get_cert_store(ctx)
+                    if X509_STORE_add_cert(store, cert) != 1 {
+                        return CURLE_SSL_CERTPROBLEM
+                    }
+                }
+                BIO_free(bio)
+            }
+            return CURLE_OK
+        })
+    }
+    return handle
+}
+
+func accessURL(handle: UnsafeMutableRawPointer?, url: String) {
+    if let handle = handle {
+        curl_easy_setopt(handle, CURLOPT_URL, url)
+        let res = curl_easy_perform(handle)
+        if res != CURLE_OK {
+            print("Access to \(url) failed: \(String(describing: curl_easy_strerror(res)))")
+        } else {
+            print("Success accessing \(url)!")
+        }
+    }
+}
+
+let handle = setupLibcurl()
+accessURL(handle: handle, url: "https://www.bing.com")
+accessURL(handle: handle, url: "https://www.ttt.com")
+curl_easy_cleanup(handle)
