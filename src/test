@@ -18,63 +18,35 @@ https://blog.ismisv.com/2019/04/sqlcipher-android-upgrade-memior/
 https://kanchuan.com/blog/146-sqlite-sqlcipher
 
 
-#include <windows.h>
-#include <tlhelp32.h>
-#include <wtsapi32.h>
-#include <tchar.h>
-#include <iostream>
+import Foundation
+import libcurl
 
-#pragma comment(lib, "Wtsapi32.lib")
+func curlTest() {
+    // 初始化libcurl
+    let handle = curl_easy_init()
+    if handle != nil {
+        // 设置URL
+        curl_easy_setopt(handle, CURLOPT_URL, "https://www.bing.com")
+        // 启用服务器证书验证
+        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 1L)
+        
+        // 使用iOS系统自带的证书库
+        curl_easy_setopt(handle, CURLOPT_SSL_CTX_FUNCTION, { (ctx, param) -> CURLcode in
+            let status = SSL_CTX_set_default_verify_paths(ctx)
+            return status == 1 ? CURLE_OK : CURLE_SSL_CERTPROBLEM
+        })
 
-bool IsExplorerRunningInCurrentSession()
-{
-    DWORD currentSessionId;
-    if (!ProcessIdToSessionId(GetCurrentProcessId(), &currentSessionId))
-    {
-        return false;
+        // 执行请求
+        let res = curl_easy_perform(handle)
+        // 检查结果
+        if res != CURLE_OK {
+            print("curl_easy_perform() failed: \(String(describing: curl_easy_strerror(res)))")
+        } else {
+            print("Success!")
+        }
+        // 清理
+        curl_easy_cleanup(handle)
     }
-
-    PROCESSENTRY32 pe32;
-    pe32.dwSize = sizeof(PROCESSENTRY32);
-
-    HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (hProcessSnap == INVALID_HANDLE_VALUE)
-    {
-        return false;
-    }
-
-    if (Process32First(hProcessSnap, &pe32))
-    {
-        do
-        {
-            if (_tcsicmp(pe32.szExeFile, _T("explorer.exe")) == 0)
-            {
-                DWORD processSessionId;
-                if (ProcessIdToSessionId(pe32.th32ProcessID, &processSessionId) && processSessionId == currentSessionId)
-                {
-                    CloseHandle(hProcessSnap);
-                    return true;
-                }
-            }
-        } while (Process32Next(hProcessSnap, &pe32));
-    }
-
-    CloseHandle(hProcessSnap);
-    return false;
 }
 
-int main()
-{
-    if (IsExplorerRunningInCurrentSession())
-    {
-        // Explorer is running in current session, proceed with UI program startup
-        std::cout << "Explorer is running in the current session." << std::endl;
-    }
-    else
-    {
-        // Explorer is not running in the current session, wait or handle the situation
-        std::cout << "Explorer is not running in the current session." << std::endl;
-    }
-
-    return 0;
-}
+curlTest()
