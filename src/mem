@@ -11,3 +11,10 @@ set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /fsanitize=address")
 
 cmake -G "NMake Makefiles" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl ..
 cmake --build . --config Release
+
+
+https://developer.apple.com/documentation/driverkit
+
+https://developer.apple.com/system-extensions/
+
+https://developer.apple.com/documentation/kernel/implementing_drivers_system_extensions_and_kexts
