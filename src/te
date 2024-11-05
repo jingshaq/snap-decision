@@ -1,0 +1,44 @@
+class MyFramebufferUserClient : public IOUserClient {
+    OSDeclareDefaultStructors(MyFramebufferUserClient)
+public:
+    virtual IOReturn clientMemoryForType(UInt32 type, IOOptionBits *options, IOMemoryDescriptor **memory);
+};
+
+IOReturn MyFramebufferUserClient::clientMemoryForType(UInt32 type, IOOptionBits *options, IOMemoryDescriptor **memory) {
+    // 假设你已经读取到 BGRA 数据
+    void *bgraData = ...;
+    size_t dataSize = ...;
+
+    IOMemoryDescriptor *memDesc = IOMemoryDescriptor::withAddress(bgraData, dataSize, kIODirectionNone);
+    if (!memDesc) {
+        return kIOReturnNoMemory;
+    }
+
+    *memory = memDesc;
+    *options = 0;
+    return kIOReturnSuccess;
+}
+
+
+#include <IOKit/IOKitLib.h>
+
+int main() {
+    io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("MyFramebuffer"));
+    if (service) {
+        io_connect_t connect;
+        IOServiceOpen(service, mach_task_self(), 0, &connect);
+
+        IOMemoryDescriptor *memDesc;
+        IOConnectMapMemory(connect, 0, mach_task_self(), (vm_address_t *)&memDesc, kIOMapAnywhere);
+        void *dataPtr = memDesc->getVirtualAddress();
+
+        // 访问 BGRA 数据
+        unsigned char *bgraData = (unsigned char *)dataPtr;
+        
+        // 数据处理逻辑
+        
+        IOConnectUnmapMemory(connect, 0, mach_task_self(), (vm_address_t)dataPtr);
+        IOServiceClose(connect);
+    }
+    return 0;
+}
