@@ -1,208 +1,341 @@
-import sqlite3
-import multiprocessing
-import threading
-import time
-import os
-import random
+#include <windows.h>
+#include <tchar.h>
+#include <strsafe.h>
 
-def write_db_thread(conn, thread_id, lock):
-    """单个线程的写入函数"""
-    try:
-        # 准备更大量的数据
-        large_text = 'x' * 10000000  # 增加到10MB
-        blob_data = os.urandom(2000000)  # 增加到2MB
-        insert_sql = "INSERT INTO test (large_text, blob_data) VALUES (?, ?)"
-        
-        count = 0
-        while True:
-            try:
-                # 批量插入更多数据，减少锁的使用频率
-                with lock:
-                    for _ in range(100):  # 增加到100条记录
-                        conn.execute(insert_sql, (large_text, blob_data))
-                        count += 1
-                    conn.commit()
-                print(f"线程 {thread_id}: 已写入 {count} 条记录")
-                
-                # 随机休眠一个很短的时间，增加并发冲突的可能
-                time.sleep(random.uniform(0, 0.01))
-                
-            except sqlite3.DatabaseError as e:
-                print(f"线程 {thread_id} SQLite错误: {e}")
-                print(f"错误类型: {type(e)}")
-                print(f"错误代码: {getattr(e, 'sqlite_errorcode', 'unknown')}")
-                raise  # 重新抛出以终止线程
-            
-    except Exception as e:
-        print(f"线程 {thread_id} 写入错误: {e}")
-        import traceback
-        print(f"错误堆栈: \n{traceback.format_exc()}")
 
-def create_and_write_db(db_path, process_id):
-    """进程的主函数，会创建多个线程共享同一个连接"""
-    pid = os.getpid()
-    print(f"写入进程 {process_id} 启动，PID: {pid}")
-    conn = None
-    threads = []
-    
-    try:
-        conn = sqlite3.connect(db_path, check_same_thread=False)
-        lock = threading.Lock()  # 创建线程锁
-        
-        # 使用更激进的WAL模式设置
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA synchronous=OFF")
-        conn.execute("PRAGMA cache_size=100000")  # 增加缓存大小
-        conn.execute("PRAGMA page_size=8192")     # 增加页大小
-        conn.execute("PRAGMA wal_autocheckpoint=1000")  # 增加检查点间隔
-        conn.execute("PRAGMA mmap_size=2147483647")     # 使用内存映射
-        
+#include <stdio.h>
+#include <iostream>
+#include <string>
+#include <strsafe.h>
+#include <windows.h>
+#include <Authz.h>
+#include <Ntsecapi.h>
 
-        # 创建表
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS test (
-            id INTEGER PRIMARY KEY,
-            large_text TEXT,
-            blob_data BLOB,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """
-        conn.execute(create_table_sql)
-        
-        # 创建更多线程
-        for i in range(10):  # 增加到10个线程
-            thread = threading.Thread(
-                target=write_db_thread,
-                args=(conn, f"P{process_id}-T{i}", lock)
-            )
-            thread.daemon = True
-            threads.append(thread)
-            thread.start()
-            
-        # 等待所有线程运行
-        while True:
-            time.sleep(0.1)
-            
-    except Exception as e:
-        print(f"进程 {process_id} 错误: {e}")
-    finally:
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
 
-def check_db(db_path):
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # 添加更多复杂查询
-        queries = [
-            "SELECT COUNT(*) FROM test",
-            """
-            SELECT id, length(large_text), length(blob_data) 
-            FROM test 
-            WHERE id IN (SELECT id FROM test ORDER BY RANDOM() LIMIT 10)
-            """,
-            """
-            SELECT t1.id, t2.id, t3.id
-            FROM test t1
-            LEFT JOIN test t2 ON t1.id = t2.id + 1
-            LEFT JOIN test t3 ON t2.id = t3.id + 1
-            WHERE t1.id IN (SELECT id FROM test ORDER BY RANDOM() LIMIT 5)
-            """,
-            "PRAGMA integrity_check",
-            "PRAGMA wal_checkpoint"
-        ]
-        
-        for query in queries:
-            cursor.execute(query)
-            result = cursor.fetchall()
-            print(f"查询结果: {result[:1]}")  # 只打印第一个结果
-            
-        return True
-        
-    except sqlite3.DatabaseError as e:
-        print(f"数据库检查错误: {e}")
-        return False
-    finally:
-        if conn:
-            try:
-                conn.close()
-            except:
-                pass
+//auditpol /set /subcategory:"Object Access" /success:enable /failure:enable
 
-def main():
-    db_path = "crash_test.db"
-    max_attempts = 500
-    attempt = 0
-    
-    # 删除旧文件
-    for file in [db_path, db_path + "-wal", db_path + "-shm"]:
-        if os.path.exists(file):
-            try:
-                os.remove(file)
-            except:
-                pass
-            
-    print(f"开始测试，将进行 {max_attempts} 次崩溃测试...")
 
-    while attempt < max_attempts:
-        print(f"\n=== 测试轮次 {attempt + 1} ===")
-        
-        # 启动更多进程
-        processes = []
-        for i in range(5):  # 增加到5个进程
-            p = multiprocessing.Process(
-                target=create_and_write_db, 
-                args=(db_path, i)
-            )
-            p.start()
-            processes.append(p)
-        
-        # 更短的等待时间
-        time.sleep(random.uniform(0.05, 0.2))
-        
-        # 强制终止所有进程
-        terminate_processes(processes)
-        
-        # 立即检查数据库
-        time.sleep(0.01)  # 几乎不等待
-        
-        print("\n尝试重新打开数据库...")
-        try:
-            if not check_db(db_path):
-                print("检测到数据库异常！")
-                for ext in ['', '-wal', '-shm']:
-                    src = db_path + ext
-                    if os.path.exists(src):
-                        dst = f"corrupted_db_{attempt}{ext}"
-                        try:
-                            os.rename(src, dst)
-                            print(f"已保存问题数据库文件: {dst}")
-                        except:
-                            pass
-                break
-        except Exception as e:
-            print(f"严重错误: {e}")
-            break
-            
-        attempt += 1
-        
-    print(f"\n测试完成，共执行了 {attempt} 次测试")
-def terminate_processes(processes):
-    """强制终止所有进程"""
-    for p in processes:
-        if p.is_alive():
-            print(f"强制终止进程 {p.pid}")
-            if os.name == 'nt':  # Windows系统
-                os.system(f'taskkill /F /PID {p.pid} /T')
-            else:  # Unix/Linux系统
-                os.kill(p.pid, 9)
-    
-    # 确保所有进程都已终止
-    for p in processes:
-        p.join(timeout=1)
-if __name__ == "__main__":
-    main()
+#pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "Authz.lib")
+
+#define SVCNAME TEXT("SecEvent")
+
+// Global variables
+SERVICE_STATUS          gSvcStatus;
+SERVICE_STATUS_HANDLE   gSvcStatusHandle;
+HANDLE                  ghSvcStopEvent = NULL;
+
+// Function prototypes
+void SvcInstall(void);
+void SvcUninstall(void);
+void WINAPI SvcMain(DWORD, LPTSTR*);
+void WINAPI SvcCtrlHandler(DWORD);
+void ReportSvcStatus(DWORD, DWORD, DWORD);
+void SvcInit(DWORD, LPTSTR*);
+void SvcReportEvent(LPTSTR);
+void HandleError(const TCHAR*, DWORD);
+
+void EnableObjectAccessAudit() {
+    DWORD dwError = ERROR_SUCCESS;
+    AUDIT_POLICY_INFORMATION auditPolicy = { 0 };
+    auditPolicy.AuditingInformation = POLICY_AUDIT_EVENT_SUCCESS | POLICY_AUDIT_EVENT_FAILURE;
+    auditPolicy.AuditCategoryGuid = AuditCategoryObjectAccess;
+    auditPolicy.AuditSubCategoryGuid = AuditSubCategoryObjectAccess;
+
+
+    // 配置策略
+    BOOL result = AuditSetSystemPolicy(&auditPolicy, 1); // 数组大小为1
+    if (!result) {
+        dwError = GetLastError();
+        std::cerr << "Failed to set audit policy. Error: " << dwError << std::endl;
+    }
+    else {
+        std::cout << "Audit policy set successfully." << std::endl;
+    }
+}
+
+bool EnableSeAuditPrivilege() {
+    HANDLE hToken;
+    TOKEN_PRIVILEGES tp;
+
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
+        std::cerr << "Failed to open process token. Error: " << GetLastError() << std::endl;
+        return false;
+    }
+
+    if (!LookupPrivilegeValue(NULL, SE_AUDIT_NAME, &tp.Privileges[0].Luid)) {
+        std::cerr << "Failed to lookup privilege value. Error: " << GetLastError() << std::endl;
+        CloseHandle(hToken);
+        return false;
+    }
+
+    tp.PrivilegeCount = 1;
+    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    if (!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(tp), NULL, NULL)) {
+        std::cerr << "Failed to adjust token privileges. Error: " << GetLastError() << std::endl;
+        CloseHandle(hToken);
+        return false;
+    }
+
+    CloseHandle(hToken);
+    return true;
+}
+
+int write_log()
+{
+    EnableSeAuditPrivilege();
+
+    BOOL bResult = TRUE;
+    DWORD event_id = 4624;
+    AUTHZ_SECURITY_EVENT_PROVIDER_HANDLE hEventProvider = NULL;
+    PAUDIT_PARAMS p;
+    std::string Source_Name = "Test security audit";
+    std::wstring ws;
+    std::string pbuf = "What is your purpose ?";
+    std::wstring ws_buf;
+    int return_code = 0;
+    int i = 0;
+    // Register the audit provider.
+    HANDLE token;
+    HANDLE hevent_source;
+    ws.assign(Source_Name.begin(), Source_Name.end());
+    ws_buf.assign(pbuf.begin(), pbuf.end());
+
+    AUTHZ_SOURCE_SCHEMA_REGISTRATION ar;
+    memset(&ar, 0, sizeof(ar));
+    ar.dwFlags = AUTHZ_ALLOW_MULTIPLE_SOURCE_INSTANCES;
+    ar.szEventSourceName = &ws[0];
+    ar.szEventMessageFile = &ws_buf[0];
+    ar.szEventSourceXmlSchemaFile = NULL;
+    ar.szEventAccessStringsFile = &ws_buf[0];
+    ar.szExecutableImagePath = NULL;
+
+    AuthzInstallSecurityEventSource(0, &ar);
+
+    bResult = AuthzRegisterSecurityEventSource(0, ws.c_str(), &hEventProvider);
+    int err = GetLastError();
+    if (!bResult)
+    {
+        printf("AuthzRegisterSecurityEventSource failed, error is %d\n", err);
+        return_code = -1;
+    }
+
+    SID id;
+    if (hEventProvider)
+    {
+        // Generate the audit.
+        while (i < 10) {
+            bResult = AuthzReportSecurityEvent(
+                APF_AuditSuccess,
+                hEventProvider,
+                event_id,
+                NULL,
+                3,
+                APT_String, L"Jay Hamlin",
+                APT_String, L"March 21, 1960",
+                APT_Ulong, 45);
+            int err1 = GetLastError();
+            if (!bResult)
+            {
+                printf("AuthzReportSecurityEvent failed, error is %d\n", err1);
+                return_code = -2;
+                break;
+            }
+
+            i++;
+        }
+
+        AuthzUnregisterSecurityEventSource(0, &hEventProvider);
+        AuthzUninstallSecurityEventSource(0, &ws[0]);
+    }
+    return 0;
+}
+
+int __cdecl _tmain(int argc, TCHAR* argv[])
+{
+    if (argc > 1)
+    {
+        if (lstrcmpi(argv[1], TEXT("install")) == 0)
+        {
+            SvcInstall();
+            return 0;
+        }
+        else if (lstrcmpi(argv[1], TEXT("uninstall")) == 0)
+        {
+            SvcUninstall();
+            return 0;
+        }
+    }
+
+    SERVICE_TABLE_ENTRY DispatchTable[] = {
+        { (LPWSTR)SVCNAME, SvcMain },
+        { NULL, NULL }
+    };
+
+    if (!StartServiceCtrlDispatcher(DispatchTable))
+    {
+        HandleError(TEXT("StartServiceCtrlDispatcher"), GetLastError());
+    }
+
+    return 0;
+}
+
+void SvcInstall()
+{
+    SC_HANDLE schSCManager = NULL;
+    SC_HANDLE schService = NULL;
+    TCHAR szPath[MAX_PATH];
+
+    if (!GetModuleFileName(NULL, szPath, MAX_PATH))
+    {
+        HandleError(TEXT("GetModuleFileName"), GetLastError());
+        return;
+    }
+
+    schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+    if (schSCManager == NULL)
+    {
+        HandleError(TEXT("OpenSCManager"), GetLastError());
+        return;
+    }
+
+    schService = CreateService(
+        schSCManager,
+        SVCNAME,
+        SVCNAME,
+        SERVICE_ALL_ACCESS,
+        SERVICE_WIN32_OWN_PROCESS,
+        SERVICE_DEMAND_START,
+        SERVICE_ERROR_NORMAL,
+        szPath,
+        NULL, NULL, NULL, NULL, NULL);
+
+    if (schService == NULL)
+    {
+        HandleError(TEXT("CreateService"), GetLastError());
+    }
+    else
+    {
+        _tprintf(TEXT("Service installed successfully.\\n"));
+    }
+
+    if (schService) CloseServiceHandle(schService);
+    if (schSCManager) CloseServiceHandle(schSCManager);
+}
+
+void SvcUninstall()
+{
+    SC_HANDLE schSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+    if (!schSCManager)
+    {
+        HandleError(TEXT("OpenSCManager"), GetLastError());
+        return;
+    }
+
+    SC_HANDLE schService = OpenService(schSCManager, SVCNAME, DELETE);
+    if (!schService)
+    {
+        HandleError(TEXT("OpenService"), GetLastError());
+    }
+    else
+    {
+        if (!DeleteService(schService))
+        {
+            HandleError(TEXT("DeleteService"), GetLastError());
+        }
+        else
+        {
+            _tprintf(TEXT("Service uninstalled successfully.\\n"));
+        }
+
+        CloseServiceHandle(schService);
+    }
+
+    CloseServiceHandle(schSCManager);
+}
+
+void WINAPI SvcMain(DWORD dwArgc, LPTSTR* lpszArgv)
+{
+    gSvcStatusHandle = RegisterServiceCtrlHandler(SVCNAME, SvcCtrlHandler);
+    if (!gSvcStatusHandle)
+    {
+        SvcReportEvent(LPTSTR("RegisterServiceCtrlHandler"));
+        return;
+    }
+
+    gSvcStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    gSvcStatus.dwServiceSpecificExitCode = 0;
+
+    ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 3000);
+    SvcInit(dwArgc, lpszArgv);
+}
+
+void SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
+{
+    ghSvcStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (!ghSvcStopEvent)
+    {
+        ReportSvcStatus(SERVICE_STOPPED, GetLastError(), 0);
+        return;
+    }
+
+    ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
+    write_log();
+    while (WaitForSingleObject(ghSvcStopEvent, 0) != WAIT_OBJECT_0)
+    {
+        // Simulate service work
+        Sleep(1000);
+    }
+
+    ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+}
+
+void WINAPI SvcCtrlHandler(DWORD dwCtrl)
+{
+    switch (dwCtrl)
+    {
+    case SERVICE_CONTROL_STOP:
+        ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 0);
+        SetEvent(ghSvcStopEvent);
+        return;
+
+    default:
+        break;
+    }
+}
+
+void ReportSvcStatus(DWORD dwCurrentState, DWORD dwWin32ExitCode, DWORD dwWaitHint)
+{
+    static DWORD dwCheckPoint = 1;
+
+    gSvcStatus.dwCurrentState = dwCurrentState;
+    gSvcStatus.dwWin32ExitCode = dwWin32ExitCode;
+    gSvcStatus.dwWaitHint = dwWaitHint;
+
+    gSvcStatus.dwControlsAccepted = (dwCurrentState == SERVICE_RUNNING) ? SERVICE_ACCEPT_STOP : 0;
+    gSvcStatus.dwCheckPoint = (dwCurrentState == SERVICE_RUNNING || dwCurrentState == SERVICE_STOPPED) ? 0 : dwCheckPoint++;
+
+    SetServiceStatus(gSvcStatusHandle, &gSvcStatus);
+}
+
+void SvcReportEvent(LPTSTR szFunction)
+{
+    HANDLE hEventSource = RegisterEventSource(NULL, SVCNAME);
+    if (hEventSource)
+    {
+        TCHAR Buffer[80];
+        StringCchPrintf(Buffer, 80, TEXT("%s failed with %d"), szFunction, GetLastError());
+
+        LPCTSTR lpszStrings[2] = { SVCNAME, Buffer };
+        ReportEvent(hEventSource, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 2, 0, lpszStrings, NULL);
+
+        DeregisterEventSource(hEventSource);
+    }
+}
+
+void HandleError(const TCHAR* msg, DWORD errorCode)
+{
+    _tprintf(TEXT("%s failed with error %d\\n"), msg, errorCode);
+    SvcReportEvent((LPTSTR)msg);
+}
