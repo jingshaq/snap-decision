@@ -1,92 +1,15 @@
-import Foundation
-import libcurl
 
-func curlTest() {
-    // 初始化libcurl
-    let handle = curl_easy_init()
-    if handle != nil {
-        // 设置URL
-        curl_easy_setopt(handle, CURLOPT_URL, "https://www.bing.com")
-        // 启用服务器证书验证
-        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 1L)
-        // 启用主机名验证
-        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 2L)
-        
-        // 使用iOS系统自带的证书库
-        curl_easy_setopt(handle, CURLOPT_SSL_CTX_FUNCTION, { (ctx, param) -> CURLcode in
-            let status = SSL_CTX_set_default_verify_paths(ctx)
-            return status == 1 ? CURLE_OK : CURLE_SSL_CERTPROBLEM
-        })
-
-        // 执行请求
-        let res = curl_easy_perform(handle)
-        // 检查结果
-        if res != CURLE_OK {
-            print("curl_easy_perform() failed: \(String(describing: curl_easy_strerror(res)))")
-        } else {
-            print("Success!")
-        }
-        // 清理
-        curl_easy_cleanup(handle)
-    }
-}
-
-curlTest()
-
-//
-import Foundation
-import libcurl
-
-func setupLibcurl() -> UnsafeMutableRawPointer? {
-    let handle = curl_easy_init()
-    if handle != nil {
-        // 公共配置项
-        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 1L)
-        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, 2L)
-        
-        // 使用iOS系统自带的证书库并添加自签证书
-        curl_easy_setopt(handle, CURLOPT_SSL_CTX_FUNCTION, { (ctx, param) -> CURLcode in
-            // 使用iOS系统自带的证书
-            let status = SSL_CTX_set_default_verify_paths(ctx)
-            if status != 1 {
-                return CURLE_SSL_CERTPROBLEM
-            }
-            
-            // 添加自签证书
-            let x509Cert = """
-            -----BEGIN CERTIFICATE-----
-            MIICyzCCAbOgAwIBAgI...
-            -----END CERTIFICATE-----
-            """
-            
-            if let bio = BIO_new_mem_buf(x509Cert, Int32(x509Cert.count)) {
-                if let cert = PEM_read_bio_X509(bio, nil, nil, nil) {
-                    let store = SSL_CTX_get_cert_store(ctx)
-                    if X509_STORE_add_cert(store, cert) != 1 {
-                        return CURLE_SSL_CERTPROBLEM
-                    }
-                }
-                BIO_free(bio)
-            }
-            return CURLE_OK
-        })
-    }
-    return handle
-}
-
-func accessURL(handle: UnsafeMutableRawPointer?, url: String) {
-    if let handle = handle {
-        curl_easy_setopt(handle, CURLOPT_URL, url)
-        let res = curl_easy_perform(handle)
-        if res != CURLE_OK {
-            print("Access to \(url) failed: \(String(describing: curl_easy_strerror(res)))")
-        } else {
-            print("Success accessing \(url)!")
-        }
-    }
-}
-
-let handle = setupLibcurl()
-accessURL(handle: handle, url: "https://www.bing.com")
-accessURL(handle: handle, url: "https://www.ttt.com")
-curl_easy_cleanup(handle)
+https://www.52pojie.cn/thread-1881980-1-1.html
+https://www.52pojie.cn/thread-1920425-1-1.html
+conn = sqlite.connect(in_db_path)
+        c = conn.cursor()
+        c.execute("PRAGMA key = '" + passwd + "';")
+        c.execute("PRAGMA cipher_use_hmac = OFF;")
+        c.execute("PRAGMA kdf_iter = 4000;")
+        c.execute("PRAGMA cipher_page_size = 1024;")
+        c.execute("PRAGMA cipher_hmac_algorithm = HMAC_SHA1;")
+        c.execute("PRAGMA cipher_kdf_algorithm = PBKDF2_HMAC_SHA1;")
+        c.execute("ATTACH DATABASE '" + out_db + "' AS db KEY '';")
+        c.execute("SELECT sqlcipher_export('db');")
+        c.execute("DETACH DATABASE db;")
+        conn.close()
