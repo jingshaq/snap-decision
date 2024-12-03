@@ -1,15 +1,34 @@
+@echo off
 
-https://www.52pojie.cn/thread-1881980-1-1.html
-https://www.52pojie.cn/thread-1920425-1-1.html
-conn = sqlite.connect(in_db_path)
-        c = conn.cursor()
-        c.execute("PRAGMA key = '" + passwd + "';")
-        c.execute("PRAGMA cipher_use_hmac = OFF;")
-        c.execute("PRAGMA kdf_iter = 4000;")
-        c.execute("PRAGMA cipher_page_size = 1024;")
-        c.execute("PRAGMA cipher_hmac_algorithm = HMAC_SHA1;")
-        c.execute("PRAGMA cipher_kdf_algorithm = PBKDF2_HMAC_SHA1;")
-        c.execute("ATTACH DATABASE '" + out_db + "' AS db KEY '';")
-        c.execute("SELECT sqlcipher_export('db');")
-        c.execute("DETACH DATABASE db;")
-        conn.close()
+:: 指定证书文件路径
+set cert_file=C:\path\to\your\certificate.cer
+
+:: 将证书添加到系统根证书存储
+certutil -addstore Root "%cert_file%"
+
+:: 检查是否添加成功（可选）
+certutil -store Root
+
+pause
+
+
+#!/bin/bash
+
+# 指定证书文件路径
+cert_file="/path/to/your/certificate.crt"
+
+# Linux (Ubuntu/Debian)
+if [[ -f /etc/os-release && $(grep -i ubuntu /etc/os-release) ]]; then
+  sudo cp "$cert_file" /usr/local/share/ca-certificates/
+  sudo update-ca-certificates
+# macOS
+elif [[ $(uname -s) == "Darwin" ]]; then
+  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$cert_file"
+# 其他Linux发行版，可尝试以下通用方法
+else
+  sudo cp "$cert_file" /etc/ssl/certs/
+  # 更新证书，具体命令根据发行版不同而异
+  # 例如：
+  # sudo update-ca-certificates
+  # sudo trust extract-pki --subject "/C=US/O=DigiCert Inc/CN=DigiCert Global Root CA"
+fi
