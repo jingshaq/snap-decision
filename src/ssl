@@ -32,3 +32,23 @@ else
   # sudo update-ca-certificates
   # sudo trust extract-pki --subject "/C=US/O=DigiCert Inc/CN=DigiCert Global Root CA"
 fi
+
+
+----
+@echo off
+
+:: 将 Base64 编码的证书字符串替换为实际的编码
+set base64_cert="MIIDDTCCAgCgAwIBAgIBADANBgkqhkiG9w0BAQUFADCBsjELMAkGA1UEBhMCVVMxETAPBgNVBAgTCENh"
+set base64_cert=%base64_cert%..."  # 这里省略了完整的 Base64 编码字符串
+
+:: 创建一个临时文件
+set temp_file=%temp%\cert.cer
+
+:: 将 Base64 编码字符串解码为临时文件
+certutil -decode -out "%temp_file%" "%base64_cert%"
+
+:: 将临时文件导入到证书存储中
+certutil -addstore Root "%temp_file%"
+
+:: 删除临时文件
+del "%temp_file%"
