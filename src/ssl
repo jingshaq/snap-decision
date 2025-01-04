@@ -7,3 +7,9 @@ https://learn.microsoft.com/zh-tw/exchange/clients/mapi-over-http/configure-mapi
 
 
 https://office365concepts.com/difference-between-rpc-over-http-and-mapi-over-http/#google_vignette
+
+Get-Mailbox -Identity "634f7589-4dfd-46f3-b128-661eae8d7f34"
+
+https://learn.microsoft.com/en-us/iis/develop/runtime-extensibility/developing-iis-modules-and-handlers-with-the-net-framework
+
+https://www.msxfaq.de/exchange/clients/mapihttp.htm
