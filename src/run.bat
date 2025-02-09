@@ -1,0 +1,1 @@
+x64\Debug\asm.exe  & echo "%ERRORLEVEL%"
